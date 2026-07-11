@@ -94,10 +94,14 @@ struct TimerSessionView: View {
             }
         }
         .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
             timerStartDate = Date()
             if notificationsEnabled {
                 scheduleNotification()
             }
+        }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard sessionState == .running else { return }

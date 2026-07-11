@@ -1,10 +1,14 @@
 import SwiftUI
 
+private struct ActiveTimer: Identifiable {
+    let id = UUID()
+    let seconds: Int
+}
+
 struct TimersView: View {
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
 
-    @State private var isShowingTimer = false
-    @State private var selectedSeconds = 0
+    @State private var activeTimer: ActiveTimer?
 
     private var presets: [Int] {
         presetsString
@@ -20,8 +24,7 @@ struct TimersView: View {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(presets, id: \.self) { minutes in
                         Button {
-                            selectedSeconds = minutes * 60
-                            isShowingTimer = true
+                            activeTimer = ActiveTimer(seconds: minutes * 60)
                         } label: {
                             Text("\(minutes) min")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -44,9 +47,9 @@ struct TimersView: View {
             }
             .navigationTitle("TimerZ")
         }
-        .fullScreenCover(isPresented: $isShowingTimer) {
-            TimerSessionView(durationSeconds: selectedSeconds) {
-                isShowingTimer = false
+        .fullScreenCover(item: $activeTimer) { timer in
+            TimerSessionView(durationSeconds: timer.seconds) {
+                activeTimer = nil
             }
         }
     }

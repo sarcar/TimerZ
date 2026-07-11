@@ -9,10 +9,14 @@ struct SettingsView: View {
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
 
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
 
     @State private var showAddPreset = false
     @State private var newMinutes = ""
     @State private var showClearConfirm = false
+    @State private var showAmendSheet = false
+
+    private var lastSession: Session? { sessions.first }
 
     private var presets: [Int] {
         presetsString
@@ -64,6 +68,13 @@ struct SettingsView: View {
                 }
 
                 Section("Data") {
+                    Button {
+                        showAmendSheet = true
+                    } label: {
+                        Label("Amend Last Session", systemImage: "pencil.circle")
+                    }
+                    .disabled(lastSession == nil)
+
                     Button(role: .destructive) {
                         showClearConfirm = true
                     } label: {
@@ -73,6 +84,11 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .toolbar { EditButton() }
+        }
+        .sheet(isPresented: $showAmendSheet) {
+            if let session = lastSession {
+                AmendSessionSheet(session: session)
+            }
         }
         .alert("Add Preset", isPresented: $showAddPreset) {
             TextField("Minutes (1–99)", text: $newMinutes)
