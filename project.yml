@@ -1,0 +1,27 @@
+name: TimerZ
+options:
+  bundleIdPrefix: com.timerz
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+targets:
+  TimerZ:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: TimerZ
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.timerz.app
+        SWIFT_VERSION: 6.0
+        TARGETED_DEVICE_FAMILY: "1"
+        PRODUCT_NAME: TimerZ
+    info:
+      path: TimerZ/Info.plist
+      properties:
+        CFBundleDisplayName: TimerZ
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UILaunchScreen: {}
