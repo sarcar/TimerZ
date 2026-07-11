@@ -10,12 +10,24 @@
 		0C5BC80E5F3BE2DE9D11CC21 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EC06CEADA45D0D754825EC /* ContentView.swift */; };
 		111B11A0E81FFF619CFE3ECC /* TimerZApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E2C756A091A8EB30847D0D /* TimerZApp.swift */; };
 		3977E2F51D88485FD8F86B67 /* TimerSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */; };
+		629F019BBCB2E4C753D6CBE3 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AE4DB48CA218841B178024 /* Keys.swift */; };
 		6A797444478C8BAE75E4AD06 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B340E24A4DD83776C2E5353 /* Session.swift */; };
+		BD8765B66CCA59D27F0C8900 /* TimerZUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E081C719DFF7F5C758F35F5 /* TimerZUITests.swift */; };
 		BED8458F3FFAB6BDF3A97C39 /* TimersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A211228E0CA7D07FBC883E50 /* TimersView.swift */; };
 		C6C71C8355C6377B44C23699 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5E50FAA47734ECD02F94F3 /* SettingsView.swift */; };
 		C805721028AC1B759696EF0A /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65EA093E60210E2C1F6B83D5 /* StatsView.swift */; };
 		EA490D6E2C539D717D21B1F5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 561A2896757D6645CD518D11 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0C3438F52327AFA0A607FC76 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2CAEC609DEB5D99BDF2E2B19 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0F7E765505AF581F6719FD36;
+			remoteInfo = TimerZ;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		02E2C756A091A8EB30847D0D /* TimerZApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerZApp.swift; sourceTree = "<group>"; };
@@ -24,10 +36,13 @@
 		561A2896757D6645CD518D11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSessionView.swift; sourceTree = "<group>"; };
 		65EA093E60210E2C1F6B83D5 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		66AE4DB48CA218841B178024 /* Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keys.swift; sourceTree = "<group>"; };
 		6A5E50FAA47734ECD02F94F3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		6E081C719DFF7F5C758F35F5 /* TimerZUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerZUITests.swift; sourceTree = "<group>"; };
 		9B340E24A4DD83776C2E5353 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		A0EC06CEADA45D0D754825EC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A211228E0CA7D07FBC883E50 /* TimersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersView.swift; sourceTree = "<group>"; };
+		E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TimerZUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -42,9 +57,18 @@
 		333A2B5C51C66388EB07D5C4 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				66AE4DB48CA218841B178024 /* Keys.swift */,
 				9B340E24A4DD83776C2E5353 /* Session.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		95ADAC1B14C3B985494AF25B /* TimerZUITests */ = {
+			isa = PBXGroup;
+			children = (
+				6E081C719DFF7F5C758F35F5 /* TimerZUITests.swift */,
+			);
+			path = TimerZUITests;
 			sourceTree = "<group>";
 		};
 		A8604E03E1F7DEA1D0118C7F /* Views */ = {
@@ -91,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				D922126182B1E6DAD1EBEC0A /* TimerZ */,
+				95ADAC1B14C3B985494AF25B /* TimerZUITests */,
 				E1646CA6A0CF8360007B47D7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				1AC5B39868375B8ACCE4F20C /* TimerZ.app */,
+				E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -124,6 +150,24 @@
 			productReference = 1AC5B39868375B8ACCE4F20C /* TimerZ.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A34B0392E272F39C59C52C8C /* TimerZUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 49E4E03FC1413312031835C4 /* Build configuration list for PBXNativeTarget "TimerZUITests" */;
+			buildPhases = (
+				EC4F51FA177DCD26449E6937 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B9D32E458C581464EE26FDC2 /* PBXTargetDependency */,
+			);
+			name = TimerZUITests;
+			packageProductDependencies = (
+			);
+			productName = TimerZUITests;
+			productReference = E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -133,6 +177,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					A34B0392E272F39C59C52C8C = {
+						TestTargetID = 0F7E765505AF581F6719FD36;
+					};
 				};
 			};
 			buildConfigurationList = F5B06B7A2E46DC2BBE973793 /* Build configuration list for PBXProject "TimerZ" */;
@@ -150,6 +197,7 @@
 			projectRoot = "";
 			targets = (
 				0F7E765505AF581F6719FD36 /* TimerZ */,
+				A34B0392E272F39C59C52C8C /* TimerZUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -171,6 +219,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C5BC80E5F3BE2DE9D11CC21 /* ContentView.swift in Sources */,
+				629F019BBCB2E4C753D6CBE3 /* Keys.swift in Sources */,
 				6A797444478C8BAE75E4AD06 /* Session.swift in Sources */,
 				C6C71C8355C6377B44C23699 /* SettingsView.swift in Sources */,
 				C805721028AC1B759696EF0A /* StatsView.swift in Sources */,
@@ -180,7 +229,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC4F51FA177DCD26449E6937 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BD8765B66CCA59D27F0C8900 /* TimerZUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B9D32E458C581464EE26FDC2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0F7E765505AF581F6719FD36 /* TimerZ */;
+			targetProxy = 0C3438F52327AFA0A607FC76 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		132994BED91EE729A861D248 /* Release */ = {
@@ -302,6 +367,42 @@
 			};
 			name = Debug;
 		};
+		7B75CC30533D4A08A47D57C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.timerz.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TimerZ;
+			};
+			name = Release;
+		};
+		DD5230E902008C0F03851C91 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.timerz.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TimerZ;
+			};
+			name = Debug;
+		};
 		E728C6D5E243A421F16B82F5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -348,6 +449,15 @@
 			buildConfigurations = (
 				E728C6D5E243A421F16B82F5 /* Debug */,
 				F4E04571797376BA73F93DBF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		49E4E03FC1413312031835C4 /* Build configuration list for PBXNativeTarget "TimerZUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD5230E902008C0F03851C91 /* Debug */,
+				7B75CC30533D4A08A47D57C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

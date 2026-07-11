@@ -3,10 +3,10 @@ import SwiftData
 import UIKit
 
 struct SettingsView: View {
-    @AppStorage("timerPresets") private var presetsString: String = "5,10,15,25"
-    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
-    @AppStorage("soundEnabled") private var soundEnabled = true
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
+    @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
+    @AppStorage(Keys.soundEnabled) private var soundEnabled = true
+    @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
 
     @Environment(\.modelContext) private var modelContext
 

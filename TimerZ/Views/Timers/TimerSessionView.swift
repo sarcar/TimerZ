@@ -9,9 +9,9 @@ struct TimerSessionView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
-    @AppStorage("soundEnabled") private var soundEnabled = true
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
+    @AppStorage(Keys.soundEnabled) private var soundEnabled = true
+    @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
 
     @State private var secondsRemaining: Int
     @State private var sessionState: SessionState = .running
@@ -138,6 +138,7 @@ struct TimerSessionView: View {
                 .clipShape(Circle())
                 .shadow(color: .green.opacity(0.4), radius: 12, x: 0, y: 6)
         }
+        .accessibilityLabel("Complete")
     }
 
     private var wonView: some View {

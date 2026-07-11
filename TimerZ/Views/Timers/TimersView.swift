@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TimersView: View {
-    @AppStorage("timerPresets") private var presetsString: String = "5,10,15,25"
+    @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
 
     @State private var isShowingTimer = false
     @State private var selectedSeconds = 0

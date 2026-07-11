@@ -25,3 +25,17 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UILaunchScreen: {}
+
+  TimerZUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: TimerZUITests
+    settings:
+      base:
+        SWIFT_VERSION: 6.0
+        TEST_TARGET_NAME: TimerZ
+        PRODUCT_BUNDLE_IDENTIFIER: com.timerz.uitests
+    dependencies:
+      - target: TimerZ
