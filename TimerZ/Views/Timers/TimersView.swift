@@ -1,14 +1,21 @@
 import SwiftUI
+import SwiftData
 
 private struct ActiveTimer: Identifiable {
     let id = UUID()
     let seconds: Int
+    let isTest: Bool
 }
 
 struct TimersView: View {
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
+    @Environment(AppState.self) private var appState
+    @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
 
     @State private var activeTimer: ActiveTimer?
+    @State private var showAmendSheet = false
+
+    private var lastSession: Session? { sessions.first }
 
     private var presets: [Int] {
         presetsString
@@ -22,25 +29,22 @@ struct TimersView: View {
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 16) {
+                    if appState.testModeEnabled {
+                        timerButton(
+                            label: { AnyView(testButtonLabel) },
+                            seconds: 3,
+                            color: .orange,
+                            isTest: true
+                        )
+                    }
                     ForEach(presets, id: \.self) { minutes in
-                        Button {
-                            activeTimer = ActiveTimer(seconds: minutes * 60)
-                        } label: {
-                            Text("\(minutes) min")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 120)
-                                .background(
-                                    LinearGradient(
-                                        colors: [.blue, .blue.opacity(0.75)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 20))
-                        }
-                        .buttonStyle(.plain)
+                        timerButton(
+                            label: { AnyView(Text("\(minutes) min")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))) },
+                            seconds: minutes * 60,
+                            color: .blue,
+                            isTest: false
+                        )
                     }
                 }
                 .padding()
@@ -48,9 +52,59 @@ struct TimersView: View {
             .navigationTitle("TimerZ")
         }
         .fullScreenCover(item: $activeTimer) { timer in
-            TimerSessionView(durationSeconds: timer.seconds) {
-                activeTimer = nil
+            TimerSessionView(
+                durationSeconds: timer.seconds,
+                isTest: timer.isTest,
+                onDismiss: {
+                    activeTimer = nil
+                },
+                onDismissAndAmend: {
+                    activeTimer = nil
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(350))
+                        showAmendSheet = true
+                    }
+                }
+            )
+        }
+        .sheet(isPresented: $showAmendSheet) {
+            if let session = lastSession {
+                AmendSessionSheet(session: session)
             }
         }
+    }
+
+    private var testButtonLabel: some View {
+        VStack(spacing: 2) {
+            Text("Test")
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+            Text("3 sec")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+        }
+    }
+
+    private func timerButton(
+        label: () -> AnyView,
+        seconds: Int,
+        color: Color,
+        isTest: Bool
+    ) -> some View {
+        Button {
+            activeTimer = ActiveTimer(seconds: seconds, isTest: isTest)
+        } label: {
+            label()
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+                .background(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.75)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+        .buttonStyle(.plain)
     }
 }

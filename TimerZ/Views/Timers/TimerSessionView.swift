@@ -5,7 +5,9 @@ import UIKit
 
 struct TimerSessionView: View {
     let durationSeconds: Int
+    let isTest: Bool
     let onDismiss: @MainActor () -> Void
+    let onDismissAndAmend: (@MainActor () -> Void)?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
@@ -20,9 +22,16 @@ struct TimerSessionView: View {
 
     enum SessionState { case running, won, lost }
 
-    init(durationSeconds: Int, onDismiss: @escaping @MainActor () -> Void) {
+    init(
+        durationSeconds: Int,
+        isTest: Bool = false,
+        onDismiss: @escaping @MainActor () -> Void,
+        onDismissAndAmend: (@MainActor () -> Void)? = nil
+    ) {
         self.durationSeconds = durationSeconds
+        self.isTest = isTest
         self.onDismiss = onDismiss
+        self.onDismissAndAmend = onDismissAndAmend
         _secondsRemaining = State(initialValue: durationSeconds)
     }
 
@@ -63,7 +72,7 @@ struct TimerSessionView: View {
                 Spacer()
 
                 // Duration label
-                Text("\(durationSeconds / 60) min session")
+                Text(durationSeconds < 60 ? "\(durationSeconds) sec session" : "\(durationSeconds / 60) min session")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 8)
@@ -96,7 +105,7 @@ struct TimerSessionView: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             timerStartDate = Date()
-            if notificationsEnabled {
+            if notificationsEnabled && !isTest {
                 scheduleNotification()
             }
         }
@@ -163,13 +172,25 @@ struct TimerSessionView: View {
                 .foregroundStyle(.red)
             Text("Time's up!")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
-            Button("Done") {
-                onDismiss()
+            VStack(spacing: 6) {
+                Button("Done") {
+                    onDismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .controlSize(.large)
+                .padding(.top, 8)
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.6).onEnded { _ in
+                        onDismissAndAmend?()
+                    }
+                )
+                if onDismissAndAmend != nil {
+                    Text("Hold to amend")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-            .controlSize(.large)
-            .padding(.top, 8)
         }
         .transition(.scale.combined(with: .opacity))
     }
@@ -201,6 +222,7 @@ struct TimerSessionView: View {
     }
 
     private func saveSession(isWin: Bool) {
+        guard !isTest else { return }
         let session = Session(durationSeconds: durationSeconds, isWin: isWin)
         modelContext.insert(session)
         try? modelContext.save()

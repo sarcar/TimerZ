@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
+    @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
@@ -29,6 +30,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        @Bindable var appState = appState
         NavigationStack {
             Form {
                 Section {
@@ -65,6 +67,14 @@ struct SettingsView: View {
                     Toggle("Background Notifications", isOn: $notificationsEnabled)
                     Toggle("Haptic Feedback", isOn: $hapticsEnabled)
                     Toggle("Sound on Expiry", isOn: $soundEnabled)
+                }
+
+                Section {
+                    Toggle("Test Mode", isOn: $appState.testModeEnabled)
+                } header: {
+                    Text("Test")
+                } footer: {
+                    Text("Adds a 3-second timer button to the home screen for quick testing.")
                 }
 
                 Section("Data") {

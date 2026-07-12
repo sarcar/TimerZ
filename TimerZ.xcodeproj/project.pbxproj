@@ -17,6 +17,7 @@
 		BED8458F3FFAB6BDF3A97C39 /* TimersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A211228E0CA7D07FBC883E50 /* TimersView.swift */; };
 		C6C71C8355C6377B44C23699 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5E50FAA47734ECD02F94F3 /* SettingsView.swift */; };
 		C805721028AC1B759696EF0A /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65EA093E60210E2C1F6B83D5 /* StatsView.swift */; };
+		E00A8BB095355F3AE4AD6A70 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3BB31EC2FF14C496043F62 /* AppState.swift */; };
 		EA490D6E2C539D717D21B1F5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 561A2896757D6645CD518D11 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -33,6 +34,7 @@
 /* Begin PBXFileReference section */
 		02E2C756A091A8EB30847D0D /* TimerZApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerZApp.swift; sourceTree = "<group>"; };
 		1AC5B39868375B8ACCE4F20C /* TimerZ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimerZ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B3BB31EC2FF14C496043F62 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		245833EEAF8F4009B185C40A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		561A2896757D6645CD518D11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSessionView.swift; sourceTree = "<group>"; };
@@ -44,7 +46,7 @@
 		A0EC06CEADA45D0D754825EC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A211228E0CA7D07FBC883E50 /* TimersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersView.swift; sourceTree = "<group>"; };
 		A4BB4CFFBB51EDEC18835BA4 /* AmendSessionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmendSessionSheet.swift; sourceTree = "<group>"; };
-		E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimerZUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TimerZUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -59,6 +61,7 @@
 		333A2B5C51C66388EB07D5C4 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				1B3BB31EC2FF14C496043F62 /* AppState.swift */,
 				66AE4DB48CA218841B178024 /* Keys.swift */,
 				9B340E24A4DD83776C2E5353 /* Session.swift */,
 			);
@@ -178,7 +181,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					A34B0392E272F39C59C52C8C = {
 						TestTargetID = 0F7E765505AF581F6719FD36;
@@ -222,6 +225,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6B247EEC633E1F36D5ADA5CF /* AmendSessionSheet.swift in Sources */,
+				E00A8BB095355F3AE4AD6A70 /* AppState.swift in Sources */,
 				0C5BC80E5F3BE2DE9D11CC21 /* ContentView.swift in Sources */,
 				629F019BBCB2E4C753D6CBE3 /* Keys.swift in Sources */,
 				6A797444478C8BAE75E4AD06 /* Session.swift in Sources */,
@@ -289,7 +293,6 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -303,7 +306,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -347,7 +349,6 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -368,7 +369,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
