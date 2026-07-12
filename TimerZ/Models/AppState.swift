@@ -1,7 +1,10 @@
 import Observation
 
-/// In-memory app state. Not persisted — resets to defaults on every cold launch.
 @Observable
 final class AppState {
+    #if targetEnvironment(simulator)
+    var testModeEnabled = true
+    #else
     var testModeEnabled = false
+    #endif
 }

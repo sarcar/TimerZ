@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 import UIKit
+import AudioToolbox
 
 struct TimerSessionView: View {
     let durationSeconds: Int
@@ -218,6 +219,14 @@ struct TimerSessionView: View {
         saveSession(isWin: false)
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+        if soundEnabled {
+            Task {
+                for _ in 0..<3 {
+                    AudioServicesPlayAlertSound(1107)
+                    try? await Task.sleep(for: .milliseconds(800))
+                }
+            }
         }
     }
 
