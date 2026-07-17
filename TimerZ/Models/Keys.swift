@@ -5,4 +5,5 @@ enum Keys {
     static let hapticsEnabled = "hapticsEnabled"
     static let soundEnabled = "soundEnabled"
     static let notificationsEnabled = "notificationsEnabled"
+    static let expirySound = "expirySound"
 }

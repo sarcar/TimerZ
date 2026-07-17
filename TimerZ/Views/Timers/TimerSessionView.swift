@@ -15,6 +15,7 @@ struct TimerSessionView: View {
     @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
+    @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
 
     @State private var secondsRemaining: Int
     @State private var sessionState: SessionState = .running
@@ -200,9 +201,10 @@ struct TimerSessionView: View {
 
     private func win() {
         guard sessionState == .running else { return }
+        let timeSpent = durationSeconds - secondsRemaining
         withAnimation(.spring(duration: 0.4)) { sessionState = .won }
         cancelNotification()
-        saveSession(isWin: true)
+        saveSession(isWin: true, timeSpentSeconds: timeSpent)
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
@@ -221,18 +223,19 @@ struct TimerSessionView: View {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
         if soundEnabled {
+            let soundID = SystemSoundID(expirySoundID)
             Task {
                 for _ in 0..<3 {
-                    AudioServicesPlayAlertSound(1107)
+                    AudioServicesPlayAlertSound(soundID)
                     try? await Task.sleep(for: .milliseconds(800))
                 }
             }
         }
     }
 
-    private func saveSession(isWin: Bool) {
+    private func saveSession(isWin: Bool, timeSpentSeconds: Int = 0) {
         guard !isTest else { return }
-        let session = Session(durationSeconds: durationSeconds, isWin: isWin)
+        let session = Session(durationSeconds: durationSeconds, isWin: isWin, timeSpentSeconds: timeSpentSeconds)
         modelContext.insert(session)
         try? modelContext.save()
     }

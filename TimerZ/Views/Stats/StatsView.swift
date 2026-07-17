@@ -6,6 +6,11 @@ struct StatsView: View {
     @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
 
     private let calendar = Calendar.current
+    @State private var tatRange: TATRange = .week
+
+    private enum TATRange: String, CaseIterable {
+        case week = "7D", month = "30D", allTime = "All"
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,6 +26,7 @@ struct StatsView: View {
                         VStack(alignment: .leading, spacing: 24) {
                             statsGrid
                             chartSection
+                            tatSection
                         }
                         .padding()
                     }
@@ -34,6 +40,31 @@ struct StatsView: View {
 
     private var totalWins: Int { sessions.filter { $0.isWin }.count }
     private var totalLosses: Int { sessions.filter { !$0.isWin }.count }
+
+    private var tatToday: Int {
+        let today = calendar.startOfDay(for: Date())
+        return sessions
+            .filter { $0.isWin && calendar.isDate($0.sessionDate, inSameDayAs: today) }
+            .reduce(0) { $0 + $1.timeSpentSeconds } / 60
+    }
+
+    private var prTAT: Int {
+        let wins = sessions.filter { $0.isWin }
+        guard !wins.isEmpty else { return 0 }
+        let days = Set(wins.map { calendar.startOfDay(for: $0.sessionDate) })
+        return days.map { day in
+            wins.filter { calendar.isDate($0.sessionDate, inSameDayAs: day) }
+                .reduce(0) { $0 + $1.timeSpentSeconds }
+        }.max().map { $0 / 60 } ?? 0
+    }
+
+    private func formatTAT(_ minutes: Int) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        if h == 0 { return "\(m)m" }
+        if m == 0 { return "\(h)h" }
+        return "\(h)h \(m)m"
+    }
 
     private var winRate: Double {
         guard !sessions.isEmpty else { return 0 }
@@ -104,10 +135,12 @@ struct StatsView: View {
             Text("All Time")
                 .font(.headline)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                StatCard(title: "Sessions", value: "\(sessions.count)", color: .blue)
-                StatCard(title: "Win Rate",  value: String(format: "%.0f%%", winRate), color: .green)
-                StatCard(title: "Streak",    value: "\(currentStreak)", color: .orange)
-                StatCard(title: "Best Streak", value: "\(bestStreak)", color: .purple)
+                StatCard(title: "Sessions",   value: "\(sessions.count)", color: .blue)
+                StatCard(title: "Win Rate",   value: String(format: "%.0f%%", winRate), color: .green)
+                StatCard(title: "Streak",     value: "\(currentStreak)", color: .orange)
+                StatCard(title: "Best Streak",value: "\(bestStreak)", color: .purple)
+                StatCard(title: "TAT Today",  value: formatTAT(tatToday), color: .teal)
+                StatCard(title: "PR TAT",     value: formatTAT(prTAT), color: .indigo)
             }
         }
     }
@@ -127,6 +160,85 @@ struct StatsView: View {
             .chartXAxis {
                 AxisMarks(values: .stride(by: .day, count: 1)) { _ in
                     AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                }
+            }
+            .frame(height: 200)
+        }
+    }
+
+    // MARK: - TAT
+
+    private struct TATDay: Identifiable {
+        let id: Date
+        let minutes: Int
+    }
+
+    private var tatDays: [TATDay] {
+        let today = calendar.startOfDay(for: Date())
+        let wins = sessions.filter { $0.isWin }
+
+        func mins(for date: Date) -> Int {
+            wins.filter { calendar.isDate($0.sessionDate, inSameDayAs: date) }
+                .reduce(0) { $0 + $1.timeSpentSeconds } / 60
+        }
+
+        switch tatRange {
+        case .week:
+            return (0..<7).reversed().map { i in
+                let d = calendar.date(byAdding: .day, value: -i, to: today)!
+                return TATDay(id: d, minutes: mins(for: d))
+            }
+        case .month:
+            return (0..<30).reversed().map { i in
+                let d = calendar.date(byAdding: .day, value: -i, to: today)!
+                return TATDay(id: d, minutes: mins(for: d))
+            }
+        case .allTime:
+            guard let first = sessions.map({ $0.sessionDate }).min() else { return [] }
+            let firstDay = calendar.startOfDay(for: first)
+            let count = max(1, calendar.dateComponents([.day], from: firstDay, to: today).day! + 1)
+            return (0..<count).map { i in
+                let d = calendar.date(byAdding: .day, value: i, to: firstDay)!
+                return TATDay(id: d, minutes: mins(for: d))
+            }
+        }
+    }
+
+    private var tatTotalString: String {
+        formatTAT(tatDays.reduce(0) { $0 + $1.minutes })
+    }
+
+    private var tatSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("TAT")
+                    .font(.headline)
+                Spacer()
+                Picker("Range", selection: $tatRange) {
+                    ForEach(TATRange.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+            }
+
+            Text(tatTotalString)
+                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .foregroundStyle(.purple)
+
+            Chart(tatDays) { day in
+                BarMark(
+                    x: .value("Day", day.id, unit: .day),
+                    y: .value("Minutes", day.minutes)
+                )
+                .foregroundStyle(.purple)
+            }
+            .chartXAxis {
+                if tatRange == .week {
+                    AxisMarks(values: .stride(by: .day, count: 1)) { _ in
+                        AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                    }
+                } else {
+                    AxisMarks { _ in AxisValueLabel() }
                 }
             }
             .frame(height: 200)

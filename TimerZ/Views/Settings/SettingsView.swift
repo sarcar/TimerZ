@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
+    @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
     @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
@@ -67,6 +68,15 @@ struct SettingsView: View {
                     Toggle("Background Notifications", isOn: $notificationsEnabled)
                     Toggle("Haptic Feedback", isOn: $hapticsEnabled)
                     Toggle("Sound on Expiry", isOn: $soundEnabled)
+                    if soundEnabled {
+                        Picker("Expiry Sound", selection: $expirySoundID) {
+                            Text("Tri-tone").tag(1003)
+                            Text("Sci-fi").tag(1107)
+                            Text("Glass").tag(1322)
+                            Text("Alarm").tag(1304)
+                            Text("Vibrate").tag(4095)
+                        }
+                    }
                 }
 
                 Section {
