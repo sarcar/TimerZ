@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class TimerZUITests: XCTestCase {
     private let app = XCUIApplication()
 

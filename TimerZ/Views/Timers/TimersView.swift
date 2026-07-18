@@ -5,6 +5,7 @@ private struct ActiveTimer: Identifiable {
     let id = UUID()
     let seconds: Int
     let isTest: Bool
+    let isCountUp: Bool
 }
 
 struct TimersView: View {
@@ -55,6 +56,7 @@ struct TimersView: View {
             TimerSessionView(
                 durationSeconds: timer.seconds,
                 isTest: timer.isTest,
+                isCountUp: timer.isCountUp,
                 onDismiss: {
                     activeTimer = nil
                 },
@@ -89,22 +91,28 @@ struct TimersView: View {
         color: Color,
         isTest: Bool
     ) -> some View {
-        Button {
-            activeTimer = ActiveTimer(seconds: seconds, isTest: isTest)
-        } label: {
-            label()
-                .frame(maxWidth: .infinity)
-                .frame(height: 120)
-                .background(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.75)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+        let tap = TapGesture().onEnded {
+            activeTimer = ActiveTimer(seconds: seconds, isTest: isTest, isCountUp: false)
         }
-        .buttonStyle(.plain)
+        let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+            activeTimer = ActiveTimer(seconds: seconds, isTest: isTest, isCountUp: true)
+        }
+
+        return label()
+            .frame(maxWidth: .infinity)
+            .frame(height: 120)
+            .background(
+                LinearGradient(
+                    colors: [color, color.opacity(0.75)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .contentShape(RoundedRectangle(cornerRadius: 20))
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .gesture(longPress.exclusively(before: tap))
     }
 }

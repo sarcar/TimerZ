@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
+    @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
     @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
@@ -77,6 +78,7 @@ struct SettingsView: View {
                             Text("Vibrate").tag(4095)
                         }
                     }
+                    Toggle("Verbal Countdown", isOn: $verbalCountdownEnabled)
                 }
 
                 Section {

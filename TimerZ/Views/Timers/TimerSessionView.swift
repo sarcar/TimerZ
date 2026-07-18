@@ -3,6 +3,7 @@ import SwiftData
 import UserNotifications
 import UIKit
 import AudioToolbox
+import AVFoundation
 
 struct TimerSessionView: View {
     let durationSeconds: Int
@@ -16,17 +17,23 @@ struct TimerSessionView: View {
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
+    @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
 
     @State private var secondsRemaining: Int
+    @State private var secondsElapsed = 0
+    @State private var isCountUp: Bool
     @State private var sessionState: SessionState = .running
     @State private var showCancelAlert = false
     @State private var timerStartDate = Date()
+    @State private var pendingAnnouncements: [Int] = []
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
 
     enum SessionState { case running, won, lost }
 
     init(
         durationSeconds: Int,
         isTest: Bool = false,
+        isCountUp: Bool = false,
         onDismiss: @escaping @MainActor () -> Void,
         onDismissAndAmend: (@MainActor () -> Void)? = nil
     ) {
@@ -35,12 +42,29 @@ struct TimerSessionView: View {
         self.onDismiss = onDismiss
         self.onDismissAndAmend = onDismissAndAmend
         _secondsRemaining = State(initialValue: durationSeconds)
+        _isCountUp = State(initialValue: isCountUp)
     }
 
+    private var displaySeconds: Int { isCountUp ? secondsElapsed : secondsRemaining }
+
     private var timeString: String {
-        let m = secondsRemaining / 60
-        let s = secondsRemaining % 60
+        let m = displaySeconds / 60
+        let s = displaySeconds % 60
         return String(format: "%02d:%02d", m, s)
+    }
+
+    private var announcementThresholds: [Int] {
+        guard !isCountUp else { return [] }
+        var thresholds: [Int] = []
+        if durationSeconds > 300 {
+            var mark = (durationSeconds - 1) / 300 * 300
+            while mark >= 300 {
+                thresholds.append(mark)
+                mark -= 300
+            }
+        }
+        thresholds.append(contentsOf: [60, 30, 10, 5].filter { $0 < durationSeconds })
+        return thresholds
     }
 
     private var backgroundColor: Color {
@@ -74,17 +98,29 @@ struct TimerSessionView: View {
                 Spacer()
 
                 // Duration label
-                Text(durationSeconds < 60 ? "\(durationSeconds) sec session" : "\(durationSeconds / 60) min session")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 8)
+                HStack(spacing: 6) {
+                    Text(durationSeconds < 60 ? "\(durationSeconds) sec session" : "\(durationSeconds / 60) min session")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    if sessionState == .running {
+                        Button {
+                            isCountUp.toggle()
+                        } label: {
+                            Image(systemName: isCountUp ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel(isCountUp ? "Counting up. Tap to count down." : "Counting down. Tap to count up.")
+                    }
+                }
+                .padding(.bottom, 8)
 
                 // Countdown
                 Text(timeString)
                     .font(.system(size: 88, weight: .bold, design: .monospaced))
                     .foregroundStyle(sessionState == .lost ? .red : .primary)
-                    .contentTransition(.numericText(countsDown: true))
-                    .animation(.default, value: secondsRemaining)
+                    .contentTransition(.numericText(countsDown: !isCountUp))
+                    .animation(.default, value: displaySeconds)
                     .padding(.bottom, 48)
 
                 // Action area
@@ -107,7 +143,8 @@ struct TimerSessionView: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             timerStartDate = Date()
-            if notificationsEnabled && !isTest {
+            pendingAnnouncements = announcementThresholds
+            if notificationsEnabled && !isTest && !isCountUp {
                 scheduleNotification()
             }
         }
@@ -117,21 +154,34 @@ struct TimerSessionView: View {
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard sessionState == .running else { return }
             let elapsed = Int(Date().timeIntervalSince(timerStartDate))
-            let remaining = max(0, durationSeconds - elapsed)
-            withAnimation { secondsRemaining = remaining }
-            if remaining == 0 { lose() }
+            if isCountUp {
+                withAnimation { secondsElapsed = min(elapsed, durationSeconds) }
+                if elapsed >= durationSeconds { win() }
+            } else {
+                let remaining = max(0, durationSeconds - elapsed)
+                withAnimation { secondsRemaining = remaining }
+                consumeAnnouncements(remaining: remaining, speak: true)
+                if remaining == 0 { lose() }
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active, sessionState == .running else { return }
             let elapsed = Int(Date().timeIntervalSince(timerStartDate))
-            let remaining = max(0, durationSeconds - elapsed)
-            secondsRemaining = remaining
-            if remaining == 0 { lose() }
+            if isCountUp {
+                secondsElapsed = min(elapsed, durationSeconds)
+                if elapsed >= durationSeconds { win() }
+            } else {
+                let remaining = max(0, durationSeconds - elapsed)
+                secondsRemaining = remaining
+                consumeAnnouncements(remaining: remaining, speak: false)
+                if remaining == 0 { lose() }
+            }
         }
         .alert("Cancel session?", isPresented: $showCancelAlert) {
             Button("Keep Going", role: .cancel) {}
             Button("Cancel Session", role: .destructive) {
                 cancelNotification()
+                stopAnnouncements()
                 onDismiss()
             }
         } message: {
@@ -201,9 +251,10 @@ struct TimerSessionView: View {
 
     private func win() {
         guard sessionState == .running else { return }
-        let timeSpent = durationSeconds - secondsRemaining
+        let timeSpent = isCountUp ? secondsElapsed : (durationSeconds - secondsRemaining)
         withAnimation(.spring(duration: 0.4)) { sessionState = .won }
         cancelNotification()
+        stopAnnouncements()
         saveSession(isWin: true, timeSpentSeconds: timeSpent)
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -218,6 +269,7 @@ struct TimerSessionView: View {
         guard sessionState == .running else { return }
         withAnimation(.spring(duration: 0.4)) { sessionState = .lost }
         cancelNotification()
+        stopAnnouncements()
         saveSession(isWin: false)
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
@@ -266,5 +318,32 @@ struct TimerSessionView: View {
     private func cancelNotification() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["timerz.expiry"])
+    }
+
+    private func consumeAnnouncements(remaining: Int, speak allowSpeak: Bool) {
+        while let next = pendingAnnouncements.first, remaining <= next {
+            if allowSpeak, remaining == next {
+                announce(next)
+            }
+            pendingAnnouncements.removeFirst()
+        }
+    }
+
+    private func announce(_ threshold: Int) {
+        guard verbalCountdownEnabled, !isTest else { return }
+        let text: String
+        switch threshold {
+        case 10: text = "Ten"
+        case 5: text = "Five"
+        case 60...: text = "\(threshold / 60) minute\(threshold == 60 ? "" : "s") remaining"
+        default: text = "\(threshold) seconds remaining"
+        }
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
+        try? AVAudioSession.sharedInstance().setActive(true)
+        speechSynthesizer.speak(AVSpeechUtterance(string: text))
+    }
+
+    private func stopAnnouncements() {
+        speechSynthesizer.stopSpeaking(at: .immediate)
     }
 }
