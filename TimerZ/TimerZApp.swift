@@ -10,6 +10,6 @@ struct TimerZApp: App {
             ContentView()
                 .environment(appState)
         }
-        .modelContainer(for: Session.self)
+        .modelContainer(for: [Session.self, IntensitySession.self])
     }
 }

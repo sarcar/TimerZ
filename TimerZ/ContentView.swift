@@ -3,10 +3,10 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
-            TimersView()
+            TimersPagerView()
                 .tabItem { Label("Timers", systemImage: "timer") }
 
-            StatsView()
+            StatsPagerView()
                 .tabItem { Label("Stats", systemImage: "chart.bar.fill") }
 
             SettingsView()

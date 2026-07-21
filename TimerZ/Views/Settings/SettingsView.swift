@@ -13,13 +13,16 @@ struct SettingsView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
+    @Query(sort: \IntensitySession.completedAt, order: .reverse) private var intensitySessions: [IntensitySession]
 
     @State private var showAddPreset = false
     @State private var newMinutes = ""
     @State private var showClearConfirm = false
     @State private var showAmendSheet = false
+    @State private var showAmendIntensitySheet = false
 
     private var lastSession: Session? { sessions.first }
+    private var lastIntensitySession: IntensitySession? { intensitySessions.first }
 
     private var presets: [Int] {
         presetsString
@@ -97,6 +100,13 @@ struct SettingsView: View {
                     }
                     .disabled(lastSession == nil)
 
+                    Button {
+                        showAmendIntensitySheet = true
+                    } label: {
+                        Label("Amend Last Intensity Session", systemImage: "pencil.circle")
+                    }
+                    .disabled(lastIntensitySession == nil)
+
                     Button(role: .destructive) {
                         showClearConfirm = true
                     } label: {
@@ -110,6 +120,11 @@ struct SettingsView: View {
         .sheet(isPresented: $showAmendSheet) {
             if let session = lastSession {
                 AmendSessionSheet(session: session)
+            }
+        }
+        .sheet(isPresented: $showAmendIntensitySheet) {
+            if let session = lastIntensitySession {
+                AmendIntensitySessionSheet(session: session)
             }
         }
         .alert("Add Preset", isPresented: $showAddPreset) {
@@ -128,6 +143,7 @@ struct SettingsView: View {
         .alert("Clear all data?", isPresented: $showClearConfirm) {
             Button("Clear All", role: .destructive) {
                 try? modelContext.delete(model: Session.self)
+                try? modelContext.delete(model: IntensitySession.self)
                 try? modelContext.save()
             }
             Button("Cancel", role: .cancel) {}

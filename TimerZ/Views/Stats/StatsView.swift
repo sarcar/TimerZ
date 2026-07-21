@@ -14,25 +14,32 @@ struct StatsView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if sessions.isEmpty {
-                    ContentUnavailableView(
-                        "No Sessions Yet",
-                        systemImage: "chart.bar",
-                        description: Text("Start a timer to see your stats here.")
-                    )
-                } else {
-                    ScrollView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Stats")
+                        .font(.largeTitle.bold())
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+
+                    if sessions.isEmpty {
+                        ContentUnavailableView(
+                            "No Sessions Yet",
+                            systemImage: "chart.bar",
+                            description: Text("Start a timer to see your stats here.")
+                        )
+                        .frame(maxWidth: .infinity)
+                    } else {
                         VStack(alignment: .leading, spacing: 24) {
                             statsGrid
                             chartSection
                             tatSection
                         }
-                        .padding()
+                        .padding(.horizontal)
+                        .padding(.bottom)
                     }
                 }
             }
-            .navigationTitle("Stats")
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
@@ -243,26 +250,5 @@ struct StatsView: View {
             }
             .frame(height: 200)
         }
-    }
-}
-
-private struct StatCard: View {
-    let title: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(color.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

@@ -18,6 +18,8 @@ targets:
         SWIFT_VERSION: 6.0
         TARGETED_DEVICE_FAMILY: "1"
         PRODUCT_NAME: TimerZ
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 85UMSXZ4TQ
     info:
       path: TimerZ/Info.plist
       properties:

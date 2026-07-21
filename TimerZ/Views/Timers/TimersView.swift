@@ -29,28 +29,36 @@ struct TimersView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    if appState.testModeEnabled {
-                        timerButton(
-                            label: { AnyView(testButtonLabel) },
-                            seconds: 3,
-                            color: .orange,
-                            isTest: true
-                        )
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("TimerZ")
+                        .font(.largeTitle.bold())
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        if appState.testModeEnabled {
+                            timerButton(
+                                label: { AnyView(testButtonLabel) },
+                                seconds: 3,
+                                color: .orange,
+                                isTest: true
+                            )
+                        }
+                        ForEach(presets, id: \.self) { minutes in
+                            timerButton(
+                                label: { AnyView(Text("\(minutes) min")
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))) },
+                                seconds: minutes * 60,
+                                color: .blue,
+                                isTest: false
+                            )
+                        }
                     }
-                    ForEach(presets, id: \.self) { minutes in
-                        timerButton(
-                            label: { AnyView(Text("\(minutes) min")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))) },
-                            seconds: minutes * 60,
-                            color: .blue,
-                            isTest: false
-                        )
-                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 }
-                .padding()
             }
-            .navigationTitle("TimerZ")
+            .toolbar(.hidden, for: .navigationBar)
         }
         .fullScreenCover(item: $activeTimer) { timer in
             TimerSessionView(

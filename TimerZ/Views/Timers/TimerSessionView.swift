@@ -27,6 +27,7 @@ struct TimerSessionView: View {
     @State private var timerStartDate = Date()
     @State private var pendingAnnouncements: [Int] = []
     @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @State private var sessionVerbalCountdownEnabled = true
 
     enum SessionState { case running, won, lost }
 
@@ -54,7 +55,6 @@ struct TimerSessionView: View {
     }
 
     private var announcementThresholds: [Int] {
-        guard !isCountUp else { return [] }
         var thresholds: [Int] = []
         if durationSeconds > 300 {
             var mark = (durationSeconds - 1) / 300 * 300
@@ -99,6 +99,16 @@ struct TimerSessionView: View {
 
                 // Duration label
                 HStack(spacing: 6) {
+                    if sessionState == .running {
+                        Button {
+                            sessionVerbalCountdownEnabled.toggle()
+                        } label: {
+                            Image(systemName: sessionVerbalCountdownEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel(sessionVerbalCountdownEnabled ? "Verbal countdown on. Tap to mute." : "Verbal countdown muted. Tap to unmute.")
+                    }
                     Text(durationSeconds < 60 ? "\(durationSeconds) sec session" : "\(durationSeconds / 60) min session")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -143,6 +153,7 @@ struct TimerSessionView: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             timerStartDate = Date()
+            sessionVerbalCountdownEnabled = verbalCountdownEnabled
             pendingAnnouncements = announcementThresholds
             if notificationsEnabled && !isTest && !isCountUp {
                 scheduleNotification()
@@ -154,11 +165,12 @@ struct TimerSessionView: View {
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard sessionState == .running else { return }
             let elapsed = Int(Date().timeIntervalSince(timerStartDate))
+            let remaining = max(0, durationSeconds - elapsed)
             if isCountUp {
                 withAnimation { secondsElapsed = min(elapsed, durationSeconds) }
+                consumeAnnouncements(remaining: remaining, speak: true)
                 if elapsed >= durationSeconds { win() }
             } else {
-                let remaining = max(0, durationSeconds - elapsed)
                 withAnimation { secondsRemaining = remaining }
                 consumeAnnouncements(remaining: remaining, speak: true)
                 if remaining == 0 { lose() }
@@ -167,11 +179,12 @@ struct TimerSessionView: View {
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active, sessionState == .running else { return }
             let elapsed = Int(Date().timeIntervalSince(timerStartDate))
+            let remaining = max(0, durationSeconds - elapsed)
             if isCountUp {
                 secondsElapsed = min(elapsed, durationSeconds)
+                consumeAnnouncements(remaining: remaining, speak: false)
                 if elapsed >= durationSeconds { win() }
             } else {
-                let remaining = max(0, durationSeconds - elapsed)
                 secondsRemaining = remaining
                 consumeAnnouncements(remaining: remaining, speak: false)
                 if remaining == 0 { lose() }
@@ -330,7 +343,7 @@ struct TimerSessionView: View {
     }
 
     private func announce(_ threshold: Int) {
-        guard verbalCountdownEnabled, !isTest else { return }
+        guard sessionVerbalCountdownEnabled, !isTest else { return }
         let text: String
         switch threshold {
         case 10: text = "Ten"
