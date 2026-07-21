@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
     @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
+    @AppStorage(Keys.dialFeedbackEnabled) private var dialFeedbackEnabled = true
     @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
@@ -82,6 +83,14 @@ struct SettingsView: View {
                         }
                     }
                     Toggle("Verbal Countdown", isOn: $verbalCountdownEnabled)
+                }
+
+                Section {
+                    Toggle("Dial Feedback", isOn: $dialFeedbackEnabled)
+                } header: {
+                    Text("Intensity Dial")
+                } footer: {
+                    Text("Haptic ticks and a soft tick sound while adjusting the Intensity duration dial. Independent of the Haptic Feedback and Sound settings above.")
                 }
 
                 Section {

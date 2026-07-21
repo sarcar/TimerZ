@@ -7,4 +7,5 @@ enum Keys {
     static let notificationsEnabled = "notificationsEnabled"
     static let expirySound = "expirySound"
     static let verbalCountdownEnabled = "verbalCountdownEnabled"
+    static let dialFeedbackEnabled = "dialFeedbackEnabled"
 }

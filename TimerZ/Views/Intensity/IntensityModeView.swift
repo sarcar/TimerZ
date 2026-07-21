@@ -17,26 +17,23 @@ struct IntensityModeView: View {
 
     @State private var pendingCommitment: PendingCommitment?
     @State private var activeSession: ActiveIntensitySession?
+    @State private var selectedMinutes = 60
+
+    private let durationRange = 26...120
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
 
-                VStack(spacing: 8) {
-                    Text("INTENSITY MODE")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .tracking(3)
-                        .foregroundStyle(.secondary)
-                    Text("Commit, and the path will appear.")
-                        .font(.subheadline)
-                        .italic()
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
+                Text("INTENSITY MODE")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .tracking(3)
+                    .foregroundStyle(.secondary)
 
-                Spacer()
+                JogDial(minutes: $selectedMinutes, range: durationRange)
+                    .frame(width: 240, height: 240)
 
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     focusButton(now: context.date)
@@ -59,6 +56,9 @@ struct IntensityModeView: View {
             .padding()
             .navigationTitle("Intensity")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                selectedMinutes = 60
+            }
         }
         .fullScreenCover(item: $pendingCommitment) { pending in
             IntensityCommitmentView(
@@ -89,7 +89,7 @@ struct IntensityModeView: View {
     }
 
     private func focusButton(now: Date) -> some View {
-        let until = now.addingTimeInterval(3600)
+        let until = now.addingTimeInterval(Double(selectedMinutes) * 60)
         return Button {
             pendingCommitment = PendingCommitment(until: until, isTest: false)
         } label: {
