@@ -18,6 +18,13 @@ struct TimersView: View {
 
     private var lastSession: Session? { sessions.first }
 
+    private func todayCount(for minutes: Int) -> Int {
+        let today = Calendar.current.startOfDay(for: Date())
+        return sessions.filter {
+            $0.durationSeconds == minutes * 60 && Calendar.current.isDate($0.sessionDate, inSameDayAs: today)
+        }.count
+    }
+
     private var presets: [Int] {
         presetsString
             .split(separator: ",")
@@ -50,7 +57,8 @@ struct TimersView: View {
                                     .font(.system(size: 28, weight: .bold, design: .rounded))) },
                                 seconds: minutes * 60,
                                 color: .blue,
-                                isTest: false
+                                isTest: false,
+                                todayCount: todayCount(for: minutes)
                             )
                         }
                     }
@@ -97,7 +105,8 @@ struct TimersView: View {
         label: () -> AnyView,
         seconds: Int,
         color: Color,
-        isTest: Bool
+        isTest: Bool,
+        todayCount: Int? = nil
     ) -> some View {
         let tap = TapGesture().onEnded {
             activeTimer = ActiveTimer(seconds: seconds, isTest: isTest, isCountUp: false)
@@ -106,21 +115,31 @@ struct TimersView: View {
             activeTimer = ActiveTimer(seconds: seconds, isTest: isTest, isCountUp: true)
         }
 
-        return label()
-            .frame(maxWidth: .infinity)
-            .frame(height: 120)
-            .background(
-                LinearGradient(
-                    colors: [color, color.opacity(0.75)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        return ZStack(alignment: .bottom) {
+            label()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if let todayCount {
+                Text("\(todayCount) today")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .padding(.bottom, 10)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 120)
+        .background(
+            LinearGradient(
+                colors: [color, color.opacity(0.75)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .contentShape(RoundedRectangle(cornerRadius: 20))
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isButton)
-            .gesture(longPress.exclusively(before: tap))
+        )
+        .foregroundStyle(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .gesture(longPress.exclusively(before: tap))
     }
 }
