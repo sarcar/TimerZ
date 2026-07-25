@@ -15,6 +15,7 @@ struct IntensitySessionView: View {
     @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
+    @AppStorage(Keys.soundEnabled) private var soundEnabled = true
 
     @State private var durationSeconds: Int
     @State private var secondsRemaining: Int
@@ -27,6 +28,7 @@ struct IntensitySessionView: View {
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var sessionVerbalCountdownEnabled = true
     @State private var distractionCount = 0
+    @State private var gongPlayer: AVAudioPlayer?
 
     enum SessionState { case running, completed, broken }
 
@@ -310,8 +312,34 @@ struct IntensitySessionView: View {
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
+        playCompletionAnnouncementThenDismiss()
+    }
+
+    private func playCompletionAnnouncementThenDismiss() {
+        let minutes = durationSeconds / 60
+        let sentence = "You have completed a \(minutes) minute focus session."
+
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.5))
+            var delay: Double = 1.2
+
+            if soundEnabled, let url = Bundle.main.url(forResource: "Gong", withExtension: "mp3") {
+                do {
+                    try AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
+                    try AVAudioSession.sharedInstance().setActive(true)
+                    let player = try AVAudioPlayer(contentsOf: url)
+                    gongPlayer = player
+                    player.play()
+                    delay = player.duration + 0.3
+                } catch {}
+            }
+            try? await Task.sleep(for: .seconds(delay))
+
+            if sessionVerbalCountdownEnabled {
+                speechSynthesizer.speak(AVSpeechUtterance(string: sentence))
+                let wordCount = sentence.split(separator: " ").count
+                try? await Task.sleep(for: .seconds(Double(wordCount) * 0.35 + 0.6))
+            }
+
             onDismiss()
         }
     }

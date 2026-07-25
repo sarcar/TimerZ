@@ -14,6 +14,7 @@
 		2DD7E37711015F06BB6389D0 /* JogDial.swift in Sources */ = {isa = PBXBuildFile; fileRef = A729E1150CCB1A49E5279674 /* JogDial.swift */; };
 		3977E2F51D88485FD8F86B67 /* TimerSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */; };
 		45657E6BE07B57CFBBCAAC6D /* IntensityStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BADF2BB836B4F2637ACD6F2 /* IntensityStatsView.swift */; };
+		5C4D614EED14E3A9F4842D16 /* Gong.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2DADEED1AC08F20FE3B1121A /* Gong.mp3 */; };
 		629F019BBCB2E4C753D6CBE3 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AE4DB48CA218841B178024 /* Keys.swift */; };
 		6A797444478C8BAE75E4AD06 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B340E24A4DD83776C2E5353 /* Session.swift */; };
 		6B247EEC633E1F36D5ADA5CF /* AmendSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BB4CFFBB51EDEC18835BA4 /* AmendSessionSheet.swift */; };
@@ -46,6 +47,7 @@
 		1AC5B39868375B8ACCE4F20C /* TimerZ.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TimerZ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B3BB31EC2FF14C496043F62 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		245833EEAF8F4009B185C40A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2DADEED1AC08F20FE3B1121A /* Gong.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Gong.mp3; sourceTree = "<group>"; };
 		2FEE3322099B5B1630CEEB9E /* TimersPagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersPagerView.swift; sourceTree = "<group>"; };
 		336072DE843DB0E80B463C26 /* IntensityModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityModeView.swift; sourceTree = "<group>"; };
 		399E32A4E6651E19F8CFE27D /* StatsPagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsPagerView.swift; sourceTree = "<group>"; };
@@ -133,6 +135,14 @@
 			path = Timers;
 			sourceTree = "<group>";
 		};
+		BD8DB2C5CBC230F6DF9DEB1F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2DADEED1AC08F20FE3B1121A /* Gong.mp3 */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		D77440CF64A3C169EA170855 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -150,6 +160,7 @@
 				245833EEAF8F4009B185C40A /* Info.plist */,
 				02E2C756A091A8EB30847D0D /* TimerZApp.swift */,
 				333A2B5C51C66388EB07D5C4 /* Models */,
+				BD8DB2C5CBC230F6DF9DEB1F /* Resources */,
 				A8604E03E1F7DEA1D0118C7F /* Views */,
 			);
 			path = TimerZ;
@@ -256,6 +267,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EA490D6E2C539D717D21B1F5 /* Assets.xcassets in Resources */,
+				5C4D614EED14E3A9F4842D16 /* Gong.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
