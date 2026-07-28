@@ -8,4 +8,5 @@ enum Keys {
     static let expirySound = "expirySound"
     static let verbalCountdownEnabled = "verbalCountdownEnabled"
     static let dialFeedbackEnabled = "dialFeedbackEnabled"
+    static let bankedSeconds = "bankedSeconds"
 }

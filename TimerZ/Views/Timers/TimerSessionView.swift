@@ -8,6 +8,7 @@ import AVFoundation
 struct TimerSessionView: View {
     let durationSeconds: Int
     let isTest: Bool
+    let isBreak: Bool
     let onDismiss: @MainActor () -> Void
     let onDismissAndAmend: (@MainActor () -> Void)?
 
@@ -18,6 +19,8 @@ struct TimerSessionView: View {
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
     @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
+    @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
+    @AppStorage(Keys.bankedSeconds) private var bankedSeconds: Int = 0
 
     @State private var secondsRemaining: Int
     @State private var secondsElapsed = 0
@@ -28,18 +31,21 @@ struct TimerSessionView: View {
     @State private var pendingAnnouncements: [Int] = []
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var sessionVerbalCountdownEnabled = true
+    @State private var lastAccruedSeconds = 0
 
     enum SessionState { case running, won, lost }
 
     init(
         durationSeconds: Int,
         isTest: Bool = false,
+        isBreak: Bool = false,
         isCountUp: Bool = false,
         onDismiss: @escaping @MainActor () -> Void,
         onDismissAndAmend: (@MainActor () -> Void)? = nil
     ) {
         self.durationSeconds = durationSeconds
         self.isTest = isTest
+        self.isBreak = isBreak
         self.onDismiss = onDismiss
         self.onDismissAndAmend = onDismissAndAmend
         _secondsRemaining = State(initialValue: durationSeconds)
@@ -47,6 +53,12 @@ struct TimerSessionView: View {
     }
 
     private var displaySeconds: Int { isCountUp ? secondsElapsed : secondsRemaining }
+
+    private var presets: [Int] {
+        presetsString
+            .split(separator: ",")
+            .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+    }
 
     private var timeString: String {
         let m = displaySeconds / 60
@@ -149,6 +161,12 @@ struct TimerSessionView: View {
                 Spacer()
                 Spacer()
             }
+
+            if sessionState == .won && !isBreak && lastAccruedSeconds > 0 {
+                ConfettiView()
+                    .ignoresSafeArea()
+                    .transition(.identity)
+            }
         }
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
@@ -224,10 +242,48 @@ struct TimerSessionView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 88))
                 .foregroundStyle(.green)
-            Text("You did it!")
+            Text(isBreak ? "Break's over!" : "You did it!")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
+            if !isBreak && lastAccruedSeconds > 0 {
+                accrualToast
+            }
         }
         .transition(.scale.combined(with: .opacity))
+    }
+
+    private var accrualToast: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkles")
+            accrualMessage
+                .fontWeight(.semibold)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.teal, in: Capsule())
+        .shadow(color: .teal.opacity(0.4), radius: 8, x: 0, y: 4)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private var accrualMessage: Text {
+        let (quantity, unit) = accruedQuantityAndUnit
+        return Text("You accrued ")
+            + Text(quantity).foregroundStyle(.yellow)
+            + Text(" \(unit)!")
+    }
+
+    private var accruedQuantityAndUnit: (quantity: String, unit: String) {
+        if lastAccruedSeconds >= 60 {
+            let minutes = lastAccruedSeconds / 60
+            let remainder = lastAccruedSeconds % 60
+            let quantity = remainder > 0 ? "\(minutes)+" : "\(minutes)"
+            let unit = (minutes == 1 && remainder == 0) ? "min" : "mins"
+            return (quantity, unit)
+        } else {
+            let unit = lastAccruedSeconds == 1 ? "sec" : "secs"
+            return ("\(lastAccruedSeconds)", unit)
+        }
     }
 
     private var lostView: some View {
@@ -235,7 +291,7 @@ struct TimerSessionView: View {
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 88))
                 .foregroundStyle(.red)
-            Text("Time's up!")
+            Text(isBreak ? "Break's over!" : "Time's up!")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
             VStack(spacing: 6) {
                 Button("Done") {
@@ -268,12 +324,18 @@ struct TimerSessionView: View {
         withAnimation(.spring(duration: 0.4)) { sessionState = .won }
         cancelNotification()
         stopAnnouncements()
-        saveSession(isWin: true, timeSpentSeconds: timeSpent)
+        if isBreak {
+            spendBank(seconds: timeSpent)
+        } else {
+            saveSession(isWin: true, timeSpentSeconds: timeSpent)
+            lastAccruedSeconds = accrueBank(elapsed: timeSpent)
+        }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
+        let dismissDelay = (!isBreak && lastAccruedSeconds > 0) ? 2.0 : 1.5
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .seconds(dismissDelay))
             onDismiss()
         }
     }
@@ -283,7 +345,11 @@ struct TimerSessionView: View {
         withAnimation(.spring(duration: 0.4)) { sessionState = .lost }
         cancelNotification()
         stopAnnouncements()
-        saveSession(isWin: false)
+        if isBreak {
+            spendBank(seconds: durationSeconds)
+        } else {
+            saveSession(isWin: false)
+        }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
@@ -303,6 +369,21 @@ struct TimerSessionView: View {
         let session = Session(durationSeconds: durationSeconds, isWin: isWin, timeSpentSeconds: timeSpentSeconds)
         modelContext.insert(session)
         try? modelContext.save()
+    }
+
+    @discardableResult
+    private func accrueBank(elapsed: Int) -> Int {
+        guard !isTest else { return 0 }
+        let rungs = presets.map { $0 * 60 }.sorted()
+        guard let rung = rungs.first(where: { $0 >= elapsed }) else { return 0 }
+        let earned = rung - elapsed
+        guard earned > 0 else { return 0 }
+        bankedSeconds += earned
+        return earned
+    }
+
+    private func spendBank(seconds: Int) {
+        bankedSeconds = max(0, bankedSeconds - seconds)
     }
 
     private func scheduleNotification() {

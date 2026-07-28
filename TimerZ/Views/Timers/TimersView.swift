@@ -6,15 +6,18 @@ private struct ActiveTimer: Identifiable {
     let seconds: Int
     let isTest: Bool
     let isCountUp: Bool
+    var isBreak: Bool = false
 }
 
 struct TimersView: View {
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
+    @AppStorage(Keys.bankedSeconds) private var bankedSeconds: Int = 0
     @Environment(AppState.self) private var appState
     @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
 
     @State private var activeTimer: ActiveTimer?
     @State private var showAmendSheet = false
+    @State private var showBreakDial = false
 
     private var lastSession: Session? { sessions.first }
 
@@ -61,6 +64,8 @@ struct TimersView: View {
                                 todayCount: todayCount(for: minutes)
                             )
                         }
+
+                        breakBankButton
                     }
                     .padding(.horizontal)
                     .padding(.bottom)
@@ -72,6 +77,7 @@ struct TimersView: View {
             TimerSessionView(
                 durationSeconds: timer.seconds,
                 isTest: timer.isTest,
+                isBreak: timer.isBreak,
                 isCountUp: timer.isCountUp,
                 onDismiss: {
                     activeTimer = nil
@@ -90,6 +96,42 @@ struct TimersView: View {
                 AmendSessionSheet(session: session)
             }
         }
+        .sheet(isPresented: $showBreakDial) {
+            BreakDialView(maxMinutes: bankedSeconds / 60) { minutes in
+                showBreakDial = false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(350))
+                    activeTimer = ActiveTimer(seconds: minutes * 60, isTest: false, isCountUp: false, isBreak: true)
+                }
+            }
+        }
+    }
+
+    private var breakBankButton: some View {
+        let canSpend = bankedSeconds >= 60
+        return Button {
+            if canSpend { showBreakDial = true }
+        } label: {
+            VStack(spacing: 2) {
+                Text("Bank")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                Text("\(bankedSeconds / 60) min")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 120)
+            .background(
+                LinearGradient(
+                    colors: canSpend ? [.teal, .teal.opacity(0.75)] : [.gray, .gray.opacity(0.6)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+        .disabled(!canSpend)
+        .accessibilityLabel("Bank, \(bankedSeconds / 60) minutes banked")
     }
 
     private var testButtonLabel: some View {

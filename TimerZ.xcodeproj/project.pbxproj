@@ -14,11 +14,13 @@
 		2DD7E37711015F06BB6389D0 /* JogDial.swift in Sources */ = {isa = PBXBuildFile; fileRef = A729E1150CCB1A49E5279674 /* JogDial.swift */; };
 		3977E2F51D88485FD8F86B67 /* TimerSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */; };
 		45657E6BE07B57CFBBCAAC6D /* IntensityStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BADF2BB836B4F2637ACD6F2 /* IntensityStatsView.swift */; };
+		55279EC8160751C68CE0F605 /* BreakDialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCCC8A03CCD55B3935F2236B /* BreakDialView.swift */; };
 		5C4D614EED14E3A9F4842D16 /* Gong.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2DADEED1AC08F20FE3B1121A /* Gong.mp3 */; };
 		629F019BBCB2E4C753D6CBE3 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AE4DB48CA218841B178024 /* Keys.swift */; };
 		6A797444478C8BAE75E4AD06 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B340E24A4DD83776C2E5353 /* Session.swift */; };
 		6B247EEC633E1F36D5ADA5CF /* AmendSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BB4CFFBB51EDEC18835BA4 /* AmendSessionSheet.swift */; };
 		78F744A42C1CA406FBE6B3E1 /* IntensityCommitmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79FD3C57759E1F05500A952 /* IntensityCommitmentView.swift */; };
+		7A8B0DF80710933CBD5D3238 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF13C4C677FC7B95C7B8FC7 /* ConfettiView.swift */; };
 		805632C82586E234B0B7B5A9 /* StatsPagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399E32A4E6651E19F8CFE27D /* StatsPagerView.swift */; };
 		9B3C7C2BC7C956AF8807AF8C /* IntensitySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24EC732F9F5AE778C9316E7 /* IntensitySessionView.swift */; };
 		AE8856C98FEC4AFBDA8E0D02 /* TimersPagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEE3322099B5B1630CEEB9E /* TimersPagerView.swift */; };
@@ -67,7 +69,9 @@
 		A24EC732F9F5AE778C9316E7 /* IntensitySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensitySessionView.swift; sourceTree = "<group>"; };
 		A4BB4CFFBB51EDEC18835BA4 /* AmendSessionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmendSessionSheet.swift; sourceTree = "<group>"; };
 		A729E1150CCB1A49E5279674 /* JogDial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JogDial.swift; sourceTree = "<group>"; };
+		BCCC8A03CCD55B3935F2236B /* BreakDialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakDialView.swift; sourceTree = "<group>"; };
 		E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TimerZUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDF13C4C677FC7B95C7B8FC7 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
 		F79FD3C57759E1F05500A952 /* IntensityCommitmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityCommitmentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -128,6 +132,8 @@
 		BCE93E384218E3184F87A3B4 /* Timers */ = {
 			isa = PBXGroup;
 			children = (
+				BCCC8A03CCD55B3935F2236B /* BreakDialView.swift */,
+				EDF13C4C677FC7B95C7B8FC7 /* ConfettiView.swift */,
 				61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */,
 				2FEE3322099B5B1630CEEB9E /* TimersPagerView.swift */,
 				A211228E0CA7D07FBC883E50 /* TimersView.swift */,
@@ -281,6 +287,8 @@
 				1E9604BD495549910250C455 /* AmendIntensitySessionSheet.swift in Sources */,
 				6B247EEC633E1F36D5ADA5CF /* AmendSessionSheet.swift in Sources */,
 				E00A8BB095355F3AE4AD6A70 /* AppState.swift in Sources */,
+				55279EC8160751C68CE0F605 /* BreakDialView.swift in Sources */,
+				7A8B0DF80710933CBD5D3238 /* ConfettiView.swift in Sources */,
 				0C5BC80E5F3BE2DE9D11CC21 /* ContentView.swift in Sources */,
 				78F744A42C1CA406FBE6B3E1 /* IntensityCommitmentView.swift in Sources */,
 				FDD2C80CFB009F947C68633A /* IntensityModeView.swift in Sources */,
