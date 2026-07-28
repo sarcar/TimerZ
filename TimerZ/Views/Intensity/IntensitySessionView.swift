@@ -3,6 +3,20 @@ import SwiftData
 import UserNotifications
 import UIKit
 import AVFoundation
+import AudioToolbox
+
+private struct SubTimerRun {
+    enum State { case running, won, lost }
+
+    let durationSeconds: Int
+    let isTest: Bool
+    var secondsRemaining: Int
+    var secondsElapsed: Int = 0
+    var isCountUp: Bool = false
+    var state: State = .running
+    var startDate: Date = Date()
+    var pendingAnnouncements: [Int] = []
+}
 
 struct IntensitySessionView: View {
     let committedUntil: Date
@@ -16,6 +30,8 @@ struct IntensitySessionView: View {
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
+    @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
+    @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
 
     @State private var durationSeconds: Int
     @State private var secondsRemaining: Int
@@ -29,6 +45,8 @@ struct IntensitySessionView: View {
     @State private var sessionVerbalCountdownEnabled = true
     @State private var distractionCount = 0
     @State private var gongPlayer: AVAudioPlayer?
+    @State private var showSubTimerPicker = false
+    @State private var subTimer: SubTimerRun?
 
     enum SessionState { case running, completed, broken }
 
@@ -89,6 +107,23 @@ struct IntensitySessionView: View {
         }
     }
 
+    private var isSubTimerRunning: Bool { subTimer?.state == .running }
+    private var isSubTimerUIActive: Bool { subTimer != nil || showSubTimerPicker }
+
+    private var eligiblePresets: [Int] {
+        presetsString
+            .split(separator: ",")
+            .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+            .filter { $0 * 60 <= secondsRemaining }
+    }
+
+    private func subTimeString(_ sub: SubTimerRun) -> String {
+        let displaySeconds = sub.isCountUp ? sub.secondsElapsed : sub.secondsRemaining
+        let m = displaySeconds / 60
+        let s = displaySeconds % 60
+        return String(format: "%02d:%02d", m, s)
+    }
+
     var body: some View {
         ZStack {
             backgroundColor.ignoresSafeArea()
@@ -142,23 +177,37 @@ struct IntensitySessionView: View {
                 }
                 .padding(.bottom, 24)
 
-                // Countdown with progress ring
-                ZStack {
-                    Circle()
-                        .stroke(Color.secondary.opacity(0.15), lineWidth: 10)
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(ringColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 1), value: progress)
-                    Text(timeString)
-                        .font(.system(size: 56, weight: .bold, design: .monospaced))
-                        .foregroundStyle(sessionState == .broken ? .red : .primary)
-                        .contentTransition(.numericText(countsDown: !isCountUp))
-                        .animation(.default, value: displaySeconds)
+                // Countdown: full ring normally, slim bar when a sub-timer takes over the screen
+                Group {
+                    if isSubTimerUIActive {
+                        VStack(spacing: 6) {
+                            ProgressView(value: progress)
+                                .tint(ringColor)
+                            Text(timeString)
+                                .font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 40)
+                    } else {
+                        ZStack {
+                            Circle()
+                                .stroke(Color.secondary.opacity(0.15), lineWidth: 10)
+                            Circle()
+                                .trim(from: 0, to: progress)
+                                .stroke(ringColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                                .animation(.linear(duration: 1), value: progress)
+                            Text(timeString)
+                                .font(.system(size: 56, weight: .bold, design: .monospaced))
+                                .foregroundStyle(sessionState == .broken ? .red : .primary)
+                                .contentTransition(.numericText(countsDown: !isCountUp))
+                                .animation(.default, value: displaySeconds)
+                        }
+                        .frame(width: 260, height: 260)
+                    }
                 }
-                .frame(width: 260, height: 260)
-                .padding(.bottom, 48)
+                .padding(.bottom, isSubTimerUIActive ? 24 : 48)
+                .animation(.spring(duration: 0.4), value: isSubTimerUIActive)
 
                 // Action area
                 Group {
@@ -189,12 +238,13 @@ struct IntensitySessionView: View {
             UIApplication.shared.isIdleTimerDisabled = false
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            guard sessionState == .running else { return }
-            tick(speak: true)
+            if sessionState == .running { tick(speak: true) }
+            if isSubTimerRunning { tickSubTimer(speak: true) }
         }
         .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active, sessionState == .running else { return }
-            tick(speak: false)
+            guard newPhase == .active else { return }
+            if sessionState == .running { tick(speak: false) }
+            if isSubTimerRunning { tickSubTimer(speak: false) }
         }
         .confirmationDialog("Leave this session?", isPresented: $showQuitDialog, titleVisibility: .visible) {
             Button("Leave (will be logged)", role: .destructive) {
@@ -237,10 +287,142 @@ struct IntensitySessionView: View {
     }
 
     private var runningFooter: some View {
-        Text("Stay the course.")
-            .font(.subheadline)
-            .foregroundStyle(.secondary.opacity(0.6))
-            .frame(height: 130)
+        Group {
+            if let sub = subTimer {
+                switch sub.state {
+                case .running:
+                    subTimerRunningView(sub)
+                case .won:
+                    subTimerWonView
+                case .lost:
+                    subTimerLostView
+                }
+            } else if showSubTimerPicker {
+                subTimerPickerRow
+            } else {
+                startSubTimerButton
+            }
+        }
+        .frame(minHeight: 130)
+        .animation(.spring(duration: 0.4), value: subTimer?.state)
+        .animation(.default, value: showSubTimerPicker)
+    }
+
+    private var startSubTimerButton: some View {
+        VStack(spacing: 8) {
+            Text("Stay the course.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary.opacity(0.6))
+            Button {
+                showSubTimerPicker = true
+            } label: {
+                Label("Start Sub-Timer", systemImage: "plus.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(.indigo)
+            }
+        }
+    }
+
+    private var subTimerPickerRow: some View {
+        VStack(spacing: 12) {
+            if eligiblePresets.isEmpty {
+                Text("Not enough time left in this session for a sub-timer.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(eligiblePresets, id: \.self) { minutes in
+                        Button {
+                            startSubTimer(durationSeconds: minutes * 60, isTest: false)
+                        } label: {
+                            Text("\(minutes) min")
+                                .font(.subheadline.bold())
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.indigo.opacity(0.15))
+                                .foregroundStyle(.indigo)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
+            }
+            if appState.testModeEnabled {
+                Button {
+                    startSubTimer(durationSeconds: 3, isTest: true)
+                } label: {
+                    Text("Test (3 sec)")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+            Button("Cancel") {
+                showSubTimerPicker = false
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal)
+    }
+
+    private func subTimerRunningView(_ sub: SubTimerRun) -> some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Text(sub.durationSeconds < 60 ? "\(sub.durationSeconds) sec sub-timer" : "\(sub.durationSeconds / 60) min sub-timer")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button {
+                    subTimer?.isCountUp.toggle()
+                } label: {
+                    Image(systemName: sub.isCountUp ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text(subTimeString(sub))
+                .font(.system(size: 40, weight: .bold, design: .monospaced))
+                .contentTransition(.numericText(countsDown: !sub.isCountUp))
+                .animation(.default, value: sub.secondsRemaining)
+                .animation(.default, value: sub.secondsElapsed)
+            Button {
+                winSubTimer()
+            } label: {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.green)
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Complete sub-timer")
+        }
+    }
+
+    private var subTimerWonView: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.green)
+            Text("Sub-timer done!")
+                .font(.headline)
+        }
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    private var subTimerLostView: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.red)
+            Text("Sub-timer time's up.")
+                .font(.headline)
+            Button("Done") {
+                subTimer = nil
+            }
+            .buttonStyle(.bordered)
+            .tint(.red)
+        }
+        .transition(.scale.combined(with: .opacity))
     }
 
     private var completedView: some View {
@@ -291,8 +473,29 @@ struct IntensitySessionView: View {
             secondsElapsed = min(elapsed, durationSeconds)
             secondsRemaining = remaining
         }
-        consumeAnnouncements(remaining: remaining, speak: speak)
+        consumeAnnouncements(remaining: remaining, speak: speak && !isSubTimerRunning)
         if remaining == 0 { complete() }
+    }
+
+    private func tickSubTimer(speak: Bool) {
+        guard var sub = subTimer, sub.state == .running else { return }
+        let elapsed = Int(Date().timeIntervalSince(sub.startDate))
+        let remaining = max(0, sub.durationSeconds - elapsed)
+
+        if sub.isCountUp {
+            sub.secondsElapsed = min(elapsed, sub.durationSeconds)
+        } else {
+            sub.secondsRemaining = remaining
+        }
+        consumeSubAnnouncements(&sub, remaining: remaining, speak: speak)
+
+        withAnimation { subTimer = sub }
+
+        if sub.isCountUp {
+            if elapsed >= sub.durationSeconds { winSubTimer() }
+        } else if remaining == 0 {
+            loseSubTimer()
+        }
     }
 
     private func logDistraction() {
@@ -305,6 +508,9 @@ struct IntensitySessionView: View {
 
     private func complete() {
         guard sessionState == .running else { return }
+        if isSubTimerRunning {
+            forceResolveSubTimer(asWin: true)
+        }
         withAnimation(.spring(duration: 0.4)) { sessionState = .completed }
         cancelNotification()
         stopAnnouncements()
@@ -349,8 +555,12 @@ struct IntensitySessionView: View {
         cancelNotification()
         stopAnnouncements()
         if discard {
+            subTimer = nil
             onDismiss()
             return
+        }
+        if isSubTimerRunning {
+            forceResolveSubTimer(asWin: false)
         }
         let elapsed = Int(Date().timeIntervalSince(timerStartDate))
         withAnimation(.spring(duration: 0.4)) { sessionState = .broken }
@@ -358,6 +568,62 @@ struct IntensitySessionView: View {
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.warning)
         }
+    }
+
+    private func startSubTimer(durationSeconds: Int, isTest: Bool) {
+        showSubTimerPicker = false
+        var sub = SubTimerRun(durationSeconds: durationSeconds, isTest: isTest, secondsRemaining: durationSeconds)
+        sub.pendingAnnouncements = subAnnouncementThresholds(for: durationSeconds)
+        subTimer = sub
+    }
+
+    private func winSubTimer() {
+        guard var sub = subTimer, sub.state == .running else { return }
+        let timeSpent = sub.isCountUp ? sub.secondsElapsed : (sub.durationSeconds - sub.secondsRemaining)
+        sub.state = .won
+        withAnimation(.spring(duration: 0.4)) { subTimer = sub }
+        if hapticsEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        saveSubTimerSession(sub, isWin: true, timeSpent: timeSpent)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            if subTimer?.state == .won { subTimer = nil }
+        }
+    }
+
+    private func loseSubTimer() {
+        guard var sub = subTimer, sub.state == .running else { return }
+        sub.state = .lost
+        withAnimation(.spring(duration: 0.4)) { subTimer = sub }
+        if hapticsEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+        saveSubTimerSession(sub, isWin: false, timeSpent: 0)
+        if soundEnabled {
+            let soundID = SystemSoundID(expirySoundID)
+            Task {
+                for _ in 0..<3 {
+                    AudioServicesPlayAlertSound(soundID)
+                    try? await Task.sleep(for: .milliseconds(800))
+                }
+            }
+        }
+    }
+
+    private func forceResolveSubTimer(asWin: Bool) {
+        guard let sub = subTimer, sub.state == .running else { return }
+        let elapsed = Int(Date().timeIntervalSince(sub.startDate))
+        let timeSpent = min(elapsed, sub.durationSeconds)
+        saveSubTimerSession(sub, isWin: asWin, timeSpent: timeSpent)
+        subTimer = nil
+    }
+
+    private func saveSubTimerSession(_ sub: SubTimerRun, isWin: Bool, timeSpent: Int) {
+        guard !sub.isTest else { return }
+        let session = Session(durationSeconds: sub.durationSeconds, isWin: isWin, timeSpentSeconds: isWin ? timeSpent : 0)
+        modelContext.insert(session)
+        try? modelContext.save()
     }
 
     private func saveSession(completed: Bool, timeSpentSeconds: Int) {
@@ -427,5 +693,41 @@ struct IntensitySessionView: View {
 
     private func stopAnnouncements() {
         speechSynthesizer.stopSpeaking(at: .immediate)
+    }
+
+    private func subAnnouncementThresholds(for durationSeconds: Int) -> [Int] {
+        var thresholds: [Int] = []
+        if durationSeconds > 300 {
+            var mark = (durationSeconds - 1) / 300 * 300
+            while mark >= 300 {
+                thresholds.append(mark)
+                mark -= 300
+            }
+        }
+        thresholds.append(contentsOf: [60, 30, 10, 5].filter { $0 < durationSeconds })
+        return thresholds
+    }
+
+    private func consumeSubAnnouncements(_ sub: inout SubTimerRun, remaining: Int, speak allowSpeak: Bool) {
+        while let next = sub.pendingAnnouncements.first, remaining <= next {
+            if allowSpeak, remaining == next, !sub.isTest {
+                announceSub(next)
+            }
+            sub.pendingAnnouncements.removeFirst()
+        }
+    }
+
+    private func announceSub(_ threshold: Int) {
+        guard sessionVerbalCountdownEnabled else { return }
+        let text: String
+        switch threshold {
+        case 10: text = "Ten"
+        case 5: text = "Five"
+        case 60...: text = "\(threshold / 60) minute\(threshold == 60 ? "" : "s") remaining"
+        default: text = "\(threshold) seconds remaining"
+        }
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
+        try? AVAudioSession.sharedInstance().setActive(true)
+        speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }
 }
