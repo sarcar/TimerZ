@@ -173,7 +173,7 @@ struct TimerSessionView: View {
             timerStartDate = Date()
             sessionVerbalCountdownEnabled = verbalCountdownEnabled
             pendingAnnouncements = announcementThresholds
-            if notificationsEnabled && !isTest && !isCountUp {
+            if !isTest && (notificationsEnabled || soundEnabled) {
                 scheduleNotification()
             }
         }
@@ -187,7 +187,7 @@ struct TimerSessionView: View {
             if isCountUp {
                 withAnimation { secondsElapsed = min(elapsed, durationSeconds) }
                 consumeAnnouncements(remaining: remaining, speak: true)
-                if elapsed >= durationSeconds { win() }
+                if elapsed >= durationSeconds { win(isAutoComplete: true) }
             } else {
                 withAnimation { secondsRemaining = remaining }
                 consumeAnnouncements(remaining: remaining, speak: true)
@@ -201,7 +201,7 @@ struct TimerSessionView: View {
             if isCountUp {
                 secondsElapsed = min(elapsed, durationSeconds)
                 consumeAnnouncements(remaining: remaining, speak: false)
-                if elapsed >= durationSeconds { win() }
+                if elapsed >= durationSeconds { win(isAutoComplete: true) }
             } else {
                 secondsRemaining = remaining
                 consumeAnnouncements(remaining: remaining, speak: false)
@@ -318,7 +318,7 @@ struct TimerSessionView: View {
 
     // MARK: - Actions
 
-    private func win() {
+    private func win(isAutoComplete: Bool = false) {
         guard sessionState == .running else { return }
         let timeSpent = isCountUp ? secondsElapsed : (durationSeconds - secondsRemaining)
         withAnimation(.spring(duration: 0.4)) { sessionState = .won }
@@ -335,6 +335,15 @@ struct TimerSessionView: View {
         }
         if !isBreak && lastAccruedSeconds > 0 {
             playAccrualBuzz()
+        }
+        if isAutoComplete && soundEnabled {
+            let soundID = SystemSoundID(expirySoundID)
+            Task {
+                for _ in 0..<3 {
+                    AudioServicesPlayAlertSound(soundID)
+                    try? await Task.sleep(for: .milliseconds(800))
+                }
+            }
         }
         let dismissDelay = (!isBreak && lastAccruedSeconds > 0) ? 3.0 : 1.5
         Task { @MainActor in
@@ -414,8 +423,13 @@ struct TimerSessionView: View {
                 guard granted else { return }
 
                 let content = UNMutableNotificationContent()
-                content.title = "Time's up!"
-                content.body = "Your \(durationSeconds / 60)-min session has ended."
+                if isCountUp {
+                    content.title = "Session complete!"
+                    content.body = "Your \(durationSeconds / 60)-min count-up session is done."
+                } else {
+                    content.title = "Time's up!"
+                    content.body = "Your \(durationSeconds / 60)-min session has ended."
+                }
                 content.sound = soundEnabled ? .default : nil
 
                 let trigger = UNTimeIntervalNotificationTrigger(
