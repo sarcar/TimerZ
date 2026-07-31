@@ -6,6 +6,8 @@ struct AmendSessionSheet: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(Keys.bankedSeconds) private var bankedSeconds: Int = 0
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -59,6 +61,15 @@ struct AmendSessionSheet: View {
                         .padding(.horizontal, 4)
                 }
 
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Delete Session", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
+
                 Spacer()
             }
             .padding()
@@ -68,6 +79,19 @@ struct AmendSessionSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .alert("Delete this session?", isPresented: $showDeleteConfirm) {
+                Button("Delete", role: .destructive) {
+                    if session.accruedSeconds > 0 {
+                        bankedSeconds = max(0, bankedSeconds - session.accruedSeconds)
+                    }
+                    modelContext.delete(session)
+                    try? modelContext.save()
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This permanently removes this session from your history.")
             }
         }
     }

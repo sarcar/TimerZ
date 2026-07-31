@@ -258,18 +258,18 @@ struct TimerSessionView: View {
                 .fontWeight(.semibold)
         }
         .font(.subheadline)
-        .foregroundStyle(.white)
+        .foregroundStyle(.yellow)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.teal, in: Capsule())
-        .shadow(color: .teal.opacity(0.4), radius: 8, x: 0, y: 4)
+        .background(Color(red: 0.05, green: 0.08, blue: 0.35), in: Capsule())
+        .shadow(color: Color(red: 0.05, green: 0.08, blue: 0.35).opacity(0.5), radius: 8, x: 0, y: 4)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private var accrualMessage: Text {
         let (quantity, unit) = accruedQuantityAndUnit
         return Text("You accrued ")
-            + Text(quantity).foregroundStyle(.yellow)
+            + Text(quantity).foregroundStyle(.pink).fontWeight(.bold)
             + Text(" \(unit)!")
     }
 
@@ -327,13 +327,16 @@ struct TimerSessionView: View {
         if isBreak {
             spendBank(seconds: timeSpent)
         } else {
-            saveSession(isWin: true, timeSpentSeconds: timeSpent)
             lastAccruedSeconds = accrueBank(elapsed: timeSpent)
+            saveSession(isWin: true, timeSpentSeconds: timeSpent, accruedSeconds: lastAccruedSeconds)
         }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
-        let dismissDelay = (!isBreak && lastAccruedSeconds > 0) ? 2.0 : 1.5
+        if !isBreak && lastAccruedSeconds > 0 {
+            playAccrualBuzz()
+        }
+        let dismissDelay = (!isBreak && lastAccruedSeconds > 0) ? 3.0 : 1.5
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(dismissDelay))
             onDismiss()
@@ -364,9 +367,14 @@ struct TimerSessionView: View {
         }
     }
 
-    private func saveSession(isWin: Bool, timeSpentSeconds: Int = 0) {
+    private func saveSession(isWin: Bool, timeSpentSeconds: Int = 0, accruedSeconds: Int = 0) {
         guard !isTest else { return }
-        let session = Session(durationSeconds: durationSeconds, isWin: isWin, timeSpentSeconds: timeSpentSeconds)
+        let session = Session(
+            durationSeconds: durationSeconds,
+            isWin: isWin,
+            timeSpentSeconds: timeSpentSeconds,
+            accruedSeconds: accruedSeconds
+        )
         modelContext.insert(session)
         try? modelContext.save()
     }
@@ -384,6 +392,18 @@ struct TimerSessionView: View {
 
     private func spendBank(seconds: Int) {
         bankedSeconds = max(0, bankedSeconds - seconds)
+    }
+
+    private func playAccrualBuzz() {
+        guard hapticsEnabled else { return }
+        let generator = UIImpactFeedbackGenerator(style: .rigid)
+        generator.prepare()
+        Task {
+            for _ in 0..<4 {
+                generator.impactOccurred()
+                try? await Task.sleep(for: .milliseconds(90))
+            }
+        }
     }
 
     private func scheduleNotification() {
