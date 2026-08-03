@@ -27,6 +27,8 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
 
   TimerZUITests:
     type: bundle.ui-testing

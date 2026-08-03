@@ -32,6 +32,7 @@ struct TimerSessionView: View {
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var sessionVerbalCountdownEnabled = true
     @State private var lastAccruedSeconds = 0
+    @State private var backgroundAudioKeepAlive = BackgroundAudioKeepAlive()
 
     enum SessionState { case running, won, lost }
 
@@ -176,9 +177,21 @@ struct TimerSessionView: View {
             if !isTest && (notificationsEnabled || soundEnabled) {
                 scheduleNotification()
             }
+            if !isTest && sessionVerbalCountdownEnabled {
+                backgroundAudioKeepAlive.start()
+            }
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            backgroundAudioKeepAlive.stop()
+        }
+        .onChange(of: sessionVerbalCountdownEnabled) { _, isEnabled in
+            guard !isTest else { return }
+            if isEnabled {
+                backgroundAudioKeepAlive.start()
+            } else {
+                backgroundAudioKeepAlive.stop()
+            }
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard sessionState == .running else { return }
@@ -213,6 +226,7 @@ struct TimerSessionView: View {
             Button("Cancel Session", role: .destructive) {
                 cancelNotification()
                 stopAnnouncements()
+                backgroundAudioKeepAlive.stop()
                 onDismiss()
             }
         } message: {
@@ -450,7 +464,7 @@ struct TimerSessionView: View {
 
     private func consumeAnnouncements(remaining: Int, speak allowSpeak: Bool) {
         while let next = pendingAnnouncements.first, remaining <= next {
-            if allowSpeak, remaining == next {
+            if allowSpeak {
                 announce(next)
             }
             pendingAnnouncements.removeFirst()
@@ -466,8 +480,6 @@ struct TimerSessionView: View {
         case 60...: text = "\(threshold / 60) minute\(threshold == 60 ? "" : "s") remaining"
         default: text = "\(threshold) seconds remaining"
         }
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
-        try? AVAudioSession.sharedInstance().setActive(true)
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }
 

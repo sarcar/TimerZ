@@ -47,6 +47,7 @@ struct IntensitySessionView: View {
     @State private var gongPlayer: AVAudioPlayer?
     @State private var showSubTimerPicker = false
     @State private var subTimer: SubTimerRun?
+    @State private var backgroundAudioKeepAlive = BackgroundAudioKeepAlive()
 
     enum SessionState { case running, completed, broken }
 
@@ -233,9 +234,21 @@ struct IntensitySessionView: View {
             if notificationsEnabled && !isTest {
                 scheduleNotification()
             }
+            if !isTest && sessionVerbalCountdownEnabled {
+                backgroundAudioKeepAlive.start()
+            }
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            backgroundAudioKeepAlive.stop()
+        }
+        .onChange(of: sessionVerbalCountdownEnabled) { _, isEnabled in
+            guard !isTest else { return }
+            if isEnabled {
+                backgroundAudioKeepAlive.start()
+            } else {
+                backgroundAudioKeepAlive.stop()
+            }
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             if sessionState == .running { tick(speak: true) }
@@ -530,7 +543,7 @@ struct IntensitySessionView: View {
 
             if soundEnabled, let url = Bundle.main.url(forResource: "Gong", withExtension: "mp3") {
                 do {
-                    try AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
+                    try AVAudioSession.sharedInstance().setCategory(.playback, options: [.duckOthers])
                     try AVAudioSession.sharedInstance().setActive(true)
                     let player = try AVAudioPlayer(contentsOf: url)
                     gongPlayer = player
@@ -670,7 +683,7 @@ struct IntensitySessionView: View {
 
     private func consumeAnnouncements(remaining: Int, speak allowSpeak: Bool) {
         while let next = pendingAnnouncements.first, remaining <= next {
-            if allowSpeak, remaining == next {
+            if allowSpeak {
                 announce(next)
             }
             pendingAnnouncements.removeFirst()
@@ -686,8 +699,6 @@ struct IntensitySessionView: View {
         case 60...: text = "\(threshold / 60) minute\(threshold == 60 ? "" : "s") remaining"
         default: text = "\(threshold) seconds remaining"
         }
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
-        try? AVAudioSession.sharedInstance().setActive(true)
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }
 
@@ -710,7 +721,7 @@ struct IntensitySessionView: View {
 
     private func consumeSubAnnouncements(_ sub: inout SubTimerRun, remaining: Int, speak allowSpeak: Bool) {
         while let next = sub.pendingAnnouncements.first, remaining <= next {
-            if allowSpeak, remaining == next, !sub.isTest {
+            if allowSpeak, !sub.isTest {
                 announceSub(next)
             }
             sub.pendingAnnouncements.removeFirst()
@@ -726,8 +737,6 @@ struct IntensitySessionView: View {
         case 60...: text = "\(threshold / 60) minute\(threshold == 60 ? "" : "s") remaining"
         default: text = "\(threshold) seconds remaining"
         }
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.duckOthers])
-        try? AVAudioSession.sharedInstance().setActive(true)
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }
 }
