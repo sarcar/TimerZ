@@ -13,8 +13,8 @@ struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
-    @Query(sort: \IntensitySession.completedAt, order: .reverse) private var intensitySessions: [IntensitySession]
+    @Query(SettingsView.lastSessionDescriptor) private var sessions: [Session]
+    @Query(SettingsView.lastIntensitySessionDescriptor) private var intensitySessions: [IntensitySession]
 
     @State private var showAddPreset = false
     @State private var newMinutes = ""
@@ -24,6 +24,18 @@ struct SettingsView: View {
 
     private var lastSession: Session? { sessions.first }
     private var lastIntensitySession: IntensitySession? { intensitySessions.first }
+
+    private static var lastSessionDescriptor: FetchDescriptor<Session> {
+        var descriptor = FetchDescriptor<Session>(sortBy: [SortDescriptor(\.completedAt, order: .reverse)])
+        descriptor.fetchLimit = 1
+        return descriptor
+    }
+
+    private static var lastIntensitySessionDescriptor: FetchDescriptor<IntensitySession> {
+        var descriptor = FetchDescriptor<IntensitySession>(sortBy: [SortDescriptor(\.completedAt, order: .reverse)])
+        descriptor.fetchLimit = 1
+        return descriptor
+    }
 
     private var presets: [Int] {
         presetsString
