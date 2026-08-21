@@ -6,9 +6,9 @@ struct StatsView: View {
     @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
 
     private let calendar = Calendar.current
-    @State private var tatRange: TATRange = .week
+    @State private var statsRange: StatsRange = .week
 
-    private enum TATRange: String, CaseIterable {
+    private enum StatsRange: String, CaseIterable {
         case week = "7D", month = "30D", allTime = "All"
     }
 
@@ -31,6 +31,7 @@ struct StatsView: View {
                     } else {
                         VStack(alignment: .leading, spacing: 24) {
                             statsGrid
+                            rangePicker
                             chartSection
                             tatSection
                         }
@@ -115,10 +116,10 @@ struct StatsView: View {
         let count: Int
     }
 
-    private var last7Days: [DayStats] {
+    private var sessionDays: [DayStats] {
         let today = calendar.startOfDay(for: Date())
-        return (0..<7).reversed().map { i in
-            let date = calendar.date(byAdding: .day, value: -i, to: today)!
+
+        func stats(for date: Date) -> DayStats {
             let daySessions = sessions.filter { calendar.isDate($0.sessionDate, inSameDayAs: date) }
             return DayStats(
                 id: date,
@@ -126,10 +127,28 @@ struct StatsView: View {
                 losses: daySessions.filter { !$0.isWin }.count
             )
         }
+
+        switch statsRange {
+        case .week:
+            return (0..<7).reversed().map { i in
+                stats(for: calendar.date(byAdding: .day, value: -i, to: today)!)
+            }
+        case .month:
+            return (0..<30).reversed().map { i in
+                stats(for: calendar.date(byAdding: .day, value: -i, to: today)!)
+            }
+        case .allTime:
+            guard let first = sessions.map({ $0.sessionDate }).min() else { return [] }
+            let firstDay = calendar.startOfDay(for: first)
+            let count = max(1, calendar.dateComponents([.day], from: firstDay, to: today).day! + 1)
+            return (0..<count).map { i in
+                stats(for: calendar.date(byAdding: .day, value: i, to: firstDay)!)
+            }
+        }
     }
 
     private var chartEntries: [ChartEntry] {
-        last7Days.flatMap { day in [
+        sessionDays.flatMap { day in [
             ChartEntry(date: day.id, type: "Win", count: day.wins),
             ChartEntry(date: day.id, type: "Loss", count: day.losses)
         ]}
@@ -152,9 +171,20 @@ struct StatsView: View {
         }
     }
 
+    private var rangePicker: some View {
+        HStack {
+            Spacer()
+            Picker("Range", selection: $statsRange) {
+                ForEach(StatsRange.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 150)
+        }
+    }
+
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Last 7 Days")
+            Text("Sessions")
                 .font(.headline)
             Chart(chartEntries) { entry in
                 BarMark(
@@ -165,8 +195,12 @@ struct StatsView: View {
             }
             .chartForegroundStyleScale(["Win": Color.green, "Loss": Color.red])
             .chartXAxis {
-                AxisMarks(values: .stride(by: .day, count: 1)) { _ in
-                    AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                if statsRange == .week {
+                    AxisMarks(values: .stride(by: .day, count: 1)) { _ in
+                        AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                    }
+                } else {
+                    AxisMarks { _ in AxisValueLabel() }
                 }
             }
             .frame(height: 200)
@@ -189,7 +223,7 @@ struct StatsView: View {
                 .reduce(0) { $0 + $1.timeSpentSeconds } / 60
         }
 
-        switch tatRange {
+        switch statsRange {
         case .week:
             return (0..<7).reversed().map { i in
                 let d = calendar.date(byAdding: .day, value: -i, to: today)!
@@ -217,16 +251,8 @@ struct StatsView: View {
 
     private var tatSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("TAT")
-                    .font(.headline)
-                Spacer()
-                Picker("Range", selection: $tatRange) {
-                    ForEach(TATRange.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 150)
-            }
+            Text("TAT")
+                .font(.headline)
 
             Text(tatTotalString)
                 .font(.system(size: 36, weight: .bold, design: .rounded))
@@ -240,7 +266,7 @@ struct StatsView: View {
                 .foregroundStyle(.purple)
             }
             .chartXAxis {
-                if tatRange == .week {
+                if statsRange == .week {
                     AxisMarks(values: .stride(by: .day, count: 1)) { _ in
                         AxisValueLabel(format: .dateTime.weekday(.abbreviated))
                     }
