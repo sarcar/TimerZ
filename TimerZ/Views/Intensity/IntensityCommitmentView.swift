@@ -5,8 +5,20 @@ struct IntensityCommitmentView: View {
     let onCommit: () -> Void
     let onCancel: () -> Void
 
+    private static let highContrastColors: [Color] = [
+        .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .pink, .red
+    ]
+
+    @State private var timeColor: Color = IntensityCommitmentView.highContrastColors.randomElement()!
+
     private var timeString: String {
         committedUntil.formatted(date: .omitted, time: .shortened)
+    }
+
+    private var commitmentQuestion: Text {
+        Text("Do you commit to maintain undistracted focus until ")
+            + Text(timeString).foregroundStyle(timeColor)
+            + Text("?")
     }
 
     var body: some View {
@@ -16,13 +28,7 @@ struct IntensityCommitmentView: View {
             VStack(spacing: 32) {
                 Spacer()
 
-                Text("Commit, and the path will appear.")
-                    .font(.subheadline)
-                    .italic()
-                    .foregroundStyle(.white.opacity(0.6))
-                    .multilineTextAlignment(.center)
-
-                Text("Do you commit to maintain undistracted focus until \(timeString)?")
+                commitmentQuestion
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
@@ -34,7 +40,7 @@ struct IntensityCommitmentView: View {
                     Button {
                         onCommit()
                     } label: {
-                        Text("Yes, I commit")
+                        Text("Commit, and the path will appear.")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
