@@ -24,6 +24,7 @@
 		78F744A42C1CA406FBE6B3E1 /* IntensityCommitmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79FD3C57759E1F05500A952 /* IntensityCommitmentView.swift */; };
 		7A8B0DF80710933CBD5D3238 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF13C4C677FC7B95C7B8FC7 /* ConfettiView.swift */; };
 		805632C82586E234B0B7B5A9 /* StatsPagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399E32A4E6651E19F8CFE27D /* StatsPagerView.swift */; };
+		88412DD6AF7A772A647C705E /* AudioCueLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0BC3A635F0E55DD989C650 /* AudioCueLevel.swift */; };
 		9B3C7C2BC7C956AF8807AF8C /* IntensitySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24EC732F9F5AE778C9316E7 /* IntensitySessionView.swift */; };
 		AE8856C98FEC4AFBDA8E0D02 /* TimersPagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEE3322099B5B1630CEEB9E /* TimersPagerView.swift */; };
 		BD8765B66CCA59D27F0C8900 /* TimerZUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E081C719DFF7F5C758F35F5 /* TimerZUITests.swift */; };
@@ -57,6 +58,7 @@
 		336072DE843DB0E80B463C26 /* IntensityModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityModeView.swift; sourceTree = "<group>"; };
 		399E32A4E6651E19F8CFE27D /* StatsPagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsPagerView.swift; sourceTree = "<group>"; };
 		561A2896757D6645CD518D11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5E0BC3A635F0E55DD989C650 /* AudioCueLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCueLevel.swift; sourceTree = "<group>"; };
 		5E1AEA9D9E135B542A99D4AB /* IntensitySession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensitySession.swift; sourceTree = "<group>"; };
 		61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSessionView.swift; sourceTree = "<group>"; };
 		65EA093E60210E2C1F6B83D5 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
@@ -94,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				1B3BB31EC2FF14C496043F62 /* AppState.swift */,
+				5E0BC3A635F0E55DD989C650 /* AudioCueLevel.swift */,
 				186C6C032FF84B923AB1FB6F /* BackgroundAudioKeepAlive.swift */,
 				5E1AEA9D9E135B542A99D4AB /* IntensitySession.swift */,
 				66AE4DB48CA218841B178024 /* Keys.swift */,
@@ -294,6 +297,7 @@
 				1E9604BD495549910250C455 /* AmendIntensitySessionSheet.swift in Sources */,
 				6B247EEC633E1F36D5ADA5CF /* AmendSessionSheet.swift in Sources */,
 				E00A8BB095355F3AE4AD6A70 /* AppState.swift in Sources */,
+				88412DD6AF7A772A647C705E /* AudioCueLevel.swift in Sources */,
 				3C0A93A99B1159717B49FDF2 /* BackgroundAudioKeepAlive.swift in Sources */,
 				55279EC8160751C68CE0F605 /* BreakDialView.swift in Sources */,
 				7A8B0DF80710933CBD5D3238 /* ConfettiView.swift in Sources */,

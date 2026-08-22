@@ -6,14 +6,11 @@ import AVFoundation
 import AudioToolbox
 
 private struct SubTimerRun {
-    enum State { case running, won, lost }
-
     let durationSeconds: Int
     let isTest: Bool
     var secondsRemaining: Int
     var secondsElapsed: Int = 0
     var isCountUp: Bool = false
-    var state: State = .running
     var startDate: Date = Date()
     var pendingAnnouncements: [Int] = []
 }
@@ -42,7 +39,9 @@ struct IntensitySessionView: View {
     @State private var timerStartDate: Date
     @State private var pendingAnnouncements: [Int] = []
     @State private var speechSynthesizer = AVSpeechSynthesizer()
-    @State private var sessionVerbalCountdownEnabled = true
+    @State private var sessionAudioCueLevel: AudioCueLevel = .regular
+    @State private var lastNonMutedLevel: AudioCueLevel = .regular
+    @State private var showAudioCueLevelPicker = false
     @State private var distractionCount = 0
     @State private var gongPlayer: AVAudioPlayer?
     @State private var showSubTimerPicker = false
@@ -108,7 +107,7 @@ struct IntensitySessionView: View {
         }
     }
 
-    private var isSubTimerRunning: Bool { subTimer?.state == .running }
+    private var isSubTimerRunning: Bool { subTimer != nil }
     private var isSubTimerUIActive: Bool { subTimer != nil || showSubTimerPicker }
 
     private var eligiblePresets: [Int] {
@@ -153,14 +152,7 @@ struct IntensitySessionView: View {
                 // Focus-until label
                 HStack(spacing: 6) {
                     if sessionState == .running {
-                        Button {
-                            sessionVerbalCountdownEnabled.toggle()
-                        } label: {
-                            Image(systemName: sessionVerbalCountdownEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .accessibilityLabel(sessionVerbalCountdownEnabled ? "Verbal countdown on. Tap to mute." : "Verbal countdown muted. Tap to unmute.")
+                        speakerControl
                     }
                     Text("Focus until \(focusUntilString)")
                         .font(.subheadline)
@@ -229,12 +221,13 @@ struct IntensitySessionView: View {
         }
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
-            sessionVerbalCountdownEnabled = verbalCountdownEnabled
+            sessionAudioCueLevel = verbalCountdownEnabled ? .regular : .muted
+            lastNonMutedLevel = .regular
             pendingAnnouncements = announcementThresholds
             if notificationsEnabled && !isTest {
                 scheduleNotification()
             }
-            if !isTest && sessionVerbalCountdownEnabled {
+            if !isTest && sessionAudioCueLevel != .muted {
                 backgroundAudioKeepAlive.start()
             }
         }
@@ -242,9 +235,9 @@ struct IntensitySessionView: View {
             UIApplication.shared.isIdleTimerDisabled = false
             backgroundAudioKeepAlive.stop()
         }
-        .onChange(of: sessionVerbalCountdownEnabled) { _, isEnabled in
+        .onChange(of: sessionAudioCueLevel) { _, newLevel in
             guard !isTest else { return }
-            if isEnabled {
+            if newLevel != .muted {
                 backgroundAudioKeepAlive.start()
             } else {
                 backgroundAudioKeepAlive.stop()
@@ -276,6 +269,39 @@ struct IntensitySessionView: View {
 
     // MARK: - Sub-views
 
+    private var speakerControl: some View {
+        let tap = TapGesture().onEnded {
+            if sessionAudioCueLevel == .muted {
+                sessionAudioCueLevel = lastNonMutedLevel
+            } else {
+                lastNonMutedLevel = sessionAudioCueLevel
+                sessionAudioCueLevel = .muted
+            }
+        }
+        let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+            showAudioCueLevelPicker = true
+        }
+
+        return Image(systemName: sessionAudioCueLevel == .muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+            .font(.subheadline)
+            .foregroundStyle(.blue)
+            .contentShape(Rectangle())
+            .gesture(longPress.exclusively(before: tap))
+            .accessibilityLabel(
+                sessionAudioCueLevel == .muted
+                    ? "Muted. Tap to unmute, hold for cue level options."
+                    : "\(sessionAudioCueLevel.label). Tap to mute, hold for cue level options."
+            )
+            .confirmationDialog("Audio Cues", isPresented: $showAudioCueLevelPicker, titleVisibility: .visible) {
+                ForEach(AudioCueLevel.allCases, id: \.self) { level in
+                    Button(level.label) {
+                        sessionAudioCueLevel = level
+                        if level != .muted { lastNonMutedLevel = level }
+                    }
+                }
+            }
+    }
+
     private var distractionControl: some View {
         VStack(spacing: 2) {
             Image(systemName: "flag.fill")
@@ -302,14 +328,7 @@ struct IntensitySessionView: View {
     private var runningFooter: some View {
         Group {
             if let sub = subTimer {
-                switch sub.state {
-                case .running:
-                    subTimerRunningView(sub)
-                case .won:
-                    subTimerWonView
-                case .lost:
-                    subTimerLostView
-                }
+                subTimerRunningView(sub)
             } else if showSubTimerPicker {
                 subTimerPickerRow
             } else {
@@ -317,7 +336,7 @@ struct IntensitySessionView: View {
             }
         }
         .frame(minHeight: 130)
-        .animation(.spring(duration: 0.4), value: subTimer?.state)
+        .animation(.spring(duration: 0.4), value: subTimer == nil)
         .animation(.default, value: showSubTimerPicker)
     }
 
@@ -350,9 +369,9 @@ struct IntensitySessionView: View {
                             startSubTimer(durationSeconds: minutes * 60, isTest: false)
                         } label: {
                             Text("\(minutes) min")
-                                .font(.subheadline.bold())
+                                .font(.title3.bold())
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
+                                .padding(.vertical, 16)
                                 .background(Color.indigo.opacity(0.15))
                                 .foregroundStyle(.indigo)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -393,7 +412,7 @@ struct IntensitySessionView: View {
                 }
             }
             Text(subTimeString(sub))
-                .font(.system(size: 40, weight: .bold, design: .monospaced))
+                .font(.system(size: 56, weight: .bold, design: .monospaced))
                 .contentTransition(.numericText(countsDown: !sub.isCountUp))
                 .animation(.default, value: sub.secondsRemaining)
                 .animation(.default, value: sub.secondsElapsed)
@@ -409,33 +428,6 @@ struct IntensitySessionView: View {
             }
             .accessibilityLabel("Complete sub-timer")
         }
-    }
-
-    private var subTimerWonView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.green)
-            Text("Sub-timer done!")
-                .font(.headline)
-        }
-        .transition(.scale.combined(with: .opacity))
-    }
-
-    private var subTimerLostView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.red)
-            Text("Sub-timer time's up.")
-                .font(.headline)
-            Button("Done") {
-                subTimer = nil
-            }
-            .buttonStyle(.bordered)
-            .tint(.red)
-        }
-        .transition(.scale.combined(with: .opacity))
     }
 
     private var completedView: some View {
@@ -486,12 +478,16 @@ struct IntensitySessionView: View {
             secondsElapsed = min(elapsed, durationSeconds)
             secondsRemaining = remaining
         }
-        consumeAnnouncements(remaining: remaining, speak: speak && !isSubTimerRunning)
+        let allowSpeak = speak && !isSubTimerRunning
+        let spoke = consumeAnnouncements(remaining: remaining, speak: allowSpeak)
+        if allowSpeak && !spoke {
+            sessionAudioCueLevel.playCue(remaining: remaining)
+        }
         if remaining == 0 { complete() }
     }
 
     private func tickSubTimer(speak: Bool) {
-        guard var sub = subTimer, sub.state == .running else { return }
+        guard var sub = subTimer else { return }
         let elapsed = Int(Date().timeIntervalSince(sub.startDate))
         let remaining = max(0, sub.durationSeconds - elapsed)
 
@@ -553,7 +549,7 @@ struct IntensitySessionView: View {
             }
             try? await Task.sleep(for: .seconds(delay))
 
-            if sessionVerbalCountdownEnabled {
+            if sessionAudioCueLevel != .muted {
                 speechSynthesizer.speak(AVSpeechUtterance(string: sentence))
                 let wordCount = sentence.split(separator: " ").count
                 try? await Task.sleep(for: .seconds(Double(wordCount) * 0.35 + 0.6))
@@ -591,28 +587,28 @@ struct IntensitySessionView: View {
     }
 
     private func winSubTimer() {
-        guard var sub = subTimer, sub.state == .running else { return }
+        guard let sub = subTimer else { return }
         let timeSpent = sub.isCountUp ? sub.secondsElapsed : (sub.durationSeconds - sub.secondsRemaining)
-        sub.state = .won
-        withAnimation(.spring(duration: 0.4)) { subTimer = sub }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
         saveSubTimerSession(sub, isWin: true, timeSpent: timeSpent)
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.5))
-            if subTimer?.state == .won { subTimer = nil }
+        withAnimation(.spring(duration: 0.4)) {
+            subTimer = nil
+            showSubTimerPicker = true
         }
     }
 
     private func loseSubTimer() {
-        guard var sub = subTimer, sub.state == .running else { return }
-        sub.state = .lost
-        withAnimation(.spring(duration: 0.4)) { subTimer = sub }
+        guard let sub = subTimer else { return }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
         saveSubTimerSession(sub, isWin: false, timeSpent: 0)
+        withAnimation(.spring(duration: 0.4)) {
+            subTimer = nil
+            showSubTimerPicker = true
+        }
         if soundEnabled {
             let soundID = SystemSoundID(expirySoundID)
             Task {
@@ -625,7 +621,7 @@ struct IntensitySessionView: View {
     }
 
     private func forceResolveSubTimer(asWin: Bool) {
-        guard let sub = subTimer, sub.state == .running else { return }
+        guard let sub = subTimer else { return }
         let elapsed = Int(Date().timeIntervalSince(sub.startDate))
         let timeSpent = min(elapsed, sub.durationSeconds)
         saveSubTimerSession(sub, isWin: asWin, timeSpent: timeSpent)
@@ -681,17 +677,21 @@ struct IntensitySessionView: View {
             .removePendingNotificationRequests(withIdentifiers: ["timerz.intensity.expiry"])
     }
 
-    private func consumeAnnouncements(remaining: Int, speak allowSpeak: Bool) {
+    @discardableResult
+    private func consumeAnnouncements(remaining: Int, speak allowSpeak: Bool) -> Bool {
+        var spoke = false
         while let next = pendingAnnouncements.first, remaining <= next {
             if allowSpeak {
                 announce(next)
+                spoke = true
             }
             pendingAnnouncements.removeFirst()
         }
+        return spoke
     }
 
     private func announce(_ threshold: Int) {
-        guard sessionVerbalCountdownEnabled, !isTest else { return }
+        guard sessionAudioCueLevel != .muted, !isTest else { return }
         let text: String
         switch threshold {
         case 10: text = "Ten"
@@ -729,7 +729,7 @@ struct IntensitySessionView: View {
     }
 
     private func announceSub(_ threshold: Int) {
-        guard sessionVerbalCountdownEnabled else { return }
+        guard sessionAudioCueLevel != .muted else { return }
         let text: String
         switch threshold {
         case 10: text = "Ten"

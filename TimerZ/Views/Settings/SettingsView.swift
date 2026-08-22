@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import AudioToolbox
 
 struct SettingsView: View {
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
@@ -10,6 +11,9 @@ struct SettingsView: View {
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
     @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
     @AppStorage(Keys.dialFeedbackEnabled) private var dialFeedbackEnabled = true
+    @AppStorage(Keys.doubleBeepSoundID) private var doubleBeepSoundID: Int = 1210
+    @AppStorage(Keys.singleBeepSoundID) private var singleBeepSoundID: Int = 1104
+    @AppStorage(Keys.tickSoundID) private var tickSoundID: Int = 1157
     @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
@@ -45,6 +49,24 @@ struct SettingsView: View {
 
     private func setPresets(_ updated: [Int]) {
         presetsString = updated.map { String($0) }.joined(separator: ",")
+    }
+
+    private func audioCueSoundRow(label: String, id: Binding<Int>) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            TextField("ID", value: id, format: .number)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 70)
+            Button {
+                AudioServicesPlaySystemSound(SystemSoundID(id.wrappedValue))
+            } label: {
+                Image(systemName: "play.circle.fill")
+                    .foregroundStyle(.indigo)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     var body: some View {
@@ -95,6 +117,16 @@ struct SettingsView: View {
                         }
                     }
                     Toggle("Verbal Countdown", isOn: $verbalCountdownEnabled)
+                }
+
+                Section {
+                    audioCueSoundRow(label: "Double Beep (Level 2)", id: $doubleBeepSoundID)
+                    audioCueSoundRow(label: "Single Beep (Level 3)", id: $singleBeepSoundID)
+                    audioCueSoundRow(label: "Tick (Level 4)", id: $tickSoundID)
+                } header: {
+                    Text("Audio Cue Sounds")
+                } footer: {
+                    Text("iOS system sound IDs used by the Level 2–4 audio cues (long-press the speaker icon on a timer to choose a level). Tap play to preview.")
                 }
 
                 Section {
