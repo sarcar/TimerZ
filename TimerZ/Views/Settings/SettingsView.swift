@@ -132,6 +132,13 @@ struct SettingsView: View {
                     Text("Glass").tag(1322)
                     Text("Alarm").tag(1304)
                     Text("Vibrate").tag(4095)
+                    Text("New Mail").tag(1000)
+                    Text("Whoosh").tag(1001)
+                    Text("Lock").tag(1006)
+                    Text("Bells").tag(1013)
+                }
+                .onChange(of: expirySoundID) { _, newValue in
+                    AudioServicesPlayAlertSound(SystemSoundID(newValue))
                 }
             }
             Toggle("Verbal Countdown", isOn: $verbalCountdownEnabled)
