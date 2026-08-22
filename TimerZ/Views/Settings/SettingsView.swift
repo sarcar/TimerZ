@@ -25,6 +25,11 @@ struct SettingsView: View {
     @State private var showClearConfirm = false
     @State private var showAmendSheet = false
     @State private var showAmendIntensitySheet = false
+    @FocusState private var focusedSoundIDField: SoundIDField?
+
+    private enum SoundIDField: Hashable {
+        case doubleBeep, singleBeep, tick
+    }
 
     private var lastSession: Session? { sessions.first }
     private var lastIntensitySession: IntensitySession? { intensitySessions.first }
@@ -51,7 +56,7 @@ struct SettingsView: View {
         presetsString = updated.map { String($0) }.joined(separator: ",")
     }
 
-    private func audioCueSoundRow(label: String, id: Binding<Int>) -> some View {
+    private func audioCueSoundRow(label: String, id: Binding<Int>, field: SoundIDField) -> some View {
         HStack {
             Text(label)
             Spacer()
@@ -59,6 +64,7 @@ struct SettingsView: View {
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 70)
+                .focused($focusedSoundIDField, equals: field)
             Button {
                 AudioServicesPlaySystemSound(SystemSoundID(id.wrappedValue))
             } label: {
@@ -69,65 +75,112 @@ struct SettingsView: View {
         }
     }
 
+    @ToolbarContentBuilder
+    private var keyboardToolbar: some ToolbarContent {
+        ToolbarItem {
+            EditButton()
+        }
+        ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") {
+                focusedSoundIDField = nil
+            }
+        }
+    }
+
+    private var presetsSection: some View {
+        Section {
+            ForEach(presets, id: \.self) { minutes in
+                Text("\(minutes) min")
+            }
+            .onDelete { offsets in
+                guard presets.count > 1 else { return }
+                var updated = presets
+                updated.remove(atOffsets: offsets)
+                setPresets(updated)
+            }
+            .onMove { source, destination in
+                var updated = presets
+                updated.move(fromOffsets: source, toOffset: destination)
+                setPresets(updated)
+            }
+
+            if presets.count < 8 {
+                Button {
+                    showAddPreset = true
+                } label: {
+                    Label("Add Preset", systemImage: "plus.circle.fill")
+                        .foregroundStyle(.green)
+                }
+            }
+        } header: {
+            Text("Timer Presets")
+        } footer: {
+            Text("Up to 8 presets. Use Edit to reorder or delete.")
+        }
+    }
+
+    private var notificationsSection: some View {
+        Section("Notifications & Feedback") {
+            Toggle("Background Notifications", isOn: $notificationsEnabled)
+            Toggle("Haptic Feedback", isOn: $hapticsEnabled)
+            Toggle("Sound on Expiry", isOn: $soundEnabled)
+            if soundEnabled {
+                Picker("Expiry Sound", selection: $expirySoundID) {
+                    Text("Tri-tone").tag(1003)
+                    Text("Sci-fi").tag(1107)
+                    Text("Glass").tag(1322)
+                    Text("Alarm").tag(1304)
+                    Text("Vibrate").tag(4095)
+                }
+            }
+            Toggle("Verbal Countdown", isOn: $verbalCountdownEnabled)
+        }
+    }
+
+    private var audioCueSoundsSection: some View {
+        Section {
+            audioCueSoundRow(label: "Double Beep (Level 2)", id: $doubleBeepSoundID, field: .doubleBeep)
+            audioCueSoundRow(label: "Single Beep (Level 3)", id: $singleBeepSoundID, field: .singleBeep)
+            audioCueSoundRow(label: "Tick (Level 4)", id: $tickSoundID, field: .tick)
+        } header: {
+            Text("Audio Cue Sounds")
+        } footer: {
+            Text("iOS system sound IDs used by the Level 2–4 audio cues (long-press the speaker icon on a timer to choose a level). Tap play to preview.")
+        }
+    }
+
+    private var dataSection: some View {
+        Section("Data") {
+            Button {
+                showAmendSheet = true
+            } label: {
+                Label("Amend Last Session", systemImage: "pencil.circle")
+            }
+            .disabled(lastSession == nil)
+
+            Button {
+                showAmendIntensitySheet = true
+            } label: {
+                Label("Amend Last Intensity Session", systemImage: "pencil.circle")
+            }
+            .disabled(lastIntensitySession == nil)
+
+            Button(role: .destructive) {
+                showClearConfirm = true
+            } label: {
+                Label("Clear All Data", systemImage: "trash")
+            }
+        }
+    }
+
     var body: some View {
         @Bindable var appState = appState
         NavigationStack {
             Form {
-                Section {
-                    ForEach(presets, id: \.self) { minutes in
-                        Text("\(minutes) min")
-                    }
-                    .onDelete { offsets in
-                        guard presets.count > 1 else { return }
-                        var updated = presets
-                        updated.remove(atOffsets: offsets)
-                        setPresets(updated)
-                    }
-                    .onMove { source, destination in
-                        var updated = presets
-                        updated.move(fromOffsets: source, toOffset: destination)
-                        setPresets(updated)
-                    }
-
-                    if presets.count < 8 {
-                        Button {
-                            showAddPreset = true
-                        } label: {
-                            Label("Add Preset", systemImage: "plus.circle.fill")
-                                .foregroundStyle(.green)
-                        }
-                    }
-                } header: {
-                    Text("Timer Presets")
-                } footer: {
-                    Text("Up to 8 presets. Use Edit to reorder or delete.")
-                }
-
-                Section("Notifications & Feedback") {
-                    Toggle("Background Notifications", isOn: $notificationsEnabled)
-                    Toggle("Haptic Feedback", isOn: $hapticsEnabled)
-                    Toggle("Sound on Expiry", isOn: $soundEnabled)
-                    if soundEnabled {
-                        Picker("Expiry Sound", selection: $expirySoundID) {
-                            Text("Tri-tone").tag(1003)
-                            Text("Sci-fi").tag(1107)
-                            Text("Glass").tag(1322)
-                            Text("Alarm").tag(1304)
-                            Text("Vibrate").tag(4095)
-                        }
-                    }
-                    Toggle("Verbal Countdown", isOn: $verbalCountdownEnabled)
-                }
-
-                Section {
-                    audioCueSoundRow(label: "Double Beep (Level 2)", id: $doubleBeepSoundID)
-                    audioCueSoundRow(label: "Single Beep (Level 3)", id: $singleBeepSoundID)
-                    audioCueSoundRow(label: "Tick (Level 4)", id: $tickSoundID)
-                } header: {
-                    Text("Audio Cue Sounds")
-                } footer: {
-                    Text("iOS system sound IDs used by the Level 2–4 audio cues (long-press the speaker icon on a timer to choose a level). Tap play to preview.")
-                }
+                presetsSection
+                notificationsSection
+                audioCueSoundsSection
 
                 Section {
                     Toggle("Dial Feedback", isOn: $dialFeedbackEnabled)
@@ -145,30 +198,11 @@ struct SettingsView: View {
                     Text("Adds a 3-second timer button to the home screen for quick testing.")
                 }
 
-                Section("Data") {
-                    Button {
-                        showAmendSheet = true
-                    } label: {
-                        Label("Amend Last Session", systemImage: "pencil.circle")
-                    }
-                    .disabled(lastSession == nil)
-
-                    Button {
-                        showAmendIntensitySheet = true
-                    } label: {
-                        Label("Amend Last Intensity Session", systemImage: "pencil.circle")
-                    }
-                    .disabled(lastIntensitySession == nil)
-
-                    Button(role: .destructive) {
-                        showClearConfirm = true
-                    } label: {
-                        Label("Clear All Data", systemImage: "trash")
-                    }
-                }
+                dataSection
             }
             .navigationTitle("Settings")
-            .toolbar { EditButton() }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar { keyboardToolbar }
         }
         .sheet(isPresented: $showAmendSheet) {
             if let session = lastSession {
