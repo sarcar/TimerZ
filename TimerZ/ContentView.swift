@@ -6,6 +6,9 @@ struct ContentView: View {
             TimersPagerView()
                 .tabItem { Label("Timers", systemImage: "timer") }
 
+            TaskLibraryView()
+                .tabItem { Label("Tasks", systemImage: "checklist") }
+
             StatsPagerView()
                 .tabItem { Label("Stats", systemImage: "chart.bar.fill") }
 

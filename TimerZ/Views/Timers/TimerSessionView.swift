@@ -9,6 +9,7 @@ struct TimerSessionView: View {
     let durationSeconds: Int
     let isTest: Bool
     let isBreak: Bool
+    let taskName: String?
     let onDismiss: @MainActor () -> Void
     let onDismissAndAmend: (@MainActor () -> Void)?
 
@@ -43,12 +44,14 @@ struct TimerSessionView: View {
         isTest: Bool = false,
         isBreak: Bool = false,
         isCountUp: Bool = false,
+        taskName: String? = nil,
         onDismiss: @escaping @MainActor () -> Void,
         onDismissAndAmend: (@MainActor () -> Void)? = nil
     ) {
         self.durationSeconds = durationSeconds
         self.isTest = isTest
         self.isBreak = isBreak
+        self.taskName = taskName
         self.onDismiss = onDismiss
         self.onDismissAndAmend = onDismissAndAmend
         _secondsRemaining = State(initialValue: durationSeconds)
@@ -111,6 +114,14 @@ struct TimerSessionView: View {
                 }
 
                 Spacer()
+
+                if let taskName {
+                    Text(taskName)
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 4)
+                }
 
                 // Duration label
                 HStack(spacing: 6) {
@@ -429,7 +440,8 @@ struct TimerSessionView: View {
             durationSeconds: durationSeconds,
             isWin: isWin,
             timeSpentSeconds: timeSpentSeconds,
-            accruedSeconds: accruedSeconds
+            accruedSeconds: accruedSeconds,
+            taskName: taskName
         )
         modelContext.insert(session)
         try? modelContext.save()

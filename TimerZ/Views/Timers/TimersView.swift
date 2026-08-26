@@ -7,6 +7,7 @@ private struct ActiveTimer: Identifiable {
     let isTest: Bool
     let isCountUp: Bool
     var isBreak: Bool = false
+    var taskName: String? = nil
 }
 
 struct TimersView: View {
@@ -79,6 +80,7 @@ struct TimersView: View {
                 isTest: timer.isTest,
                 isBreak: timer.isBreak,
                 isCountUp: timer.isCountUp,
+                taskName: timer.taskName,
                 onDismiss: {
                     activeTimer = nil
                 },

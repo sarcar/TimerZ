@@ -10,8 +10,9 @@ final class Session {
     var completedAt: Date
     var timeSpentSeconds: Int = 0
     var accruedSeconds: Int = 0
+    var taskName: String?
 
-    init(durationSeconds: Int, isWin: Bool, timeSpentSeconds: Int = 0, accruedSeconds: Int = 0) {
+    init(durationSeconds: Int, isWin: Bool, timeSpentSeconds: Int = 0, accruedSeconds: Int = 0, taskName: String? = nil) {
         self.id = UUID()
         let now = Date()
         self.sessionDate = Calendar.current.startOfDay(for: now)
@@ -20,5 +21,6 @@ final class Session {
         self.completedAt = now
         self.timeSpentSeconds = timeSpentSeconds
         self.accruedSeconds = accruedSeconds
+        self.taskName = taskName
     }
 }
