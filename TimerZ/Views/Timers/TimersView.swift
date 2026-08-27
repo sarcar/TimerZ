@@ -90,8 +90,15 @@ struct TimersView: View {
                         try? await Task.sleep(for: .milliseconds(350))
                         showAmendSheet = true
                     }
+                },
+                onDismissAndStartNext: { seconds in
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(350))
+                        activeTimer = ActiveTimer(seconds: seconds, isTest: false, isCountUp: false)
+                    }
                 }
             )
+            .id(timer.id)
         }
         .sheet(isPresented: $showAmendSheet) {
             if let session = lastSession {

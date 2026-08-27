@@ -3,7 +3,7 @@ import SwiftData
 
 private struct ActiveTaskTimer: Identifiable {
     let id = UUID()
-    let taskName: String
+    let taskName: String?
     let seconds: Int
 }
 
@@ -106,8 +106,15 @@ struct TaskLibraryView: View {
                 durationSeconds: timer.seconds,
                 taskName: timer.taskName,
                 onDismiss: { activeTaskTimer = nil },
-                onDismissAndAmend: nil
+                onDismissAndAmend: nil,
+                onDismissAndStartNext: { seconds in
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(350))
+                        activeTaskTimer = ActiveTaskTimer(taskName: nil, seconds: seconds)
+                    }
+                }
             )
+            .id(timer.id)
         }
     }
 

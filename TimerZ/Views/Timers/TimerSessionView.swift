@@ -12,6 +12,7 @@ struct TimerSessionView: View {
     let taskName: String?
     let onDismiss: @MainActor () -> Void
     let onDismissAndAmend: (@MainActor () -> Void)?
+    let onDismissAndStartNext: (@MainActor (Int) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
@@ -36,6 +37,9 @@ struct TimerSessionView: View {
     @State private var showAudioCueLevelPicker = false
     @State private var lastAccruedSeconds = 0
     @State private var backgroundAudioKeepAlive = BackgroundAudioKeepAlive()
+    @State private var pendingChainSeconds: Int?
+    @State private var showChainSheet = false
+    private let checkmarkLongPressDuration: TimeInterval = 0.5
 
     enum SessionState { case running, won, lost }
 
@@ -46,7 +50,8 @@ struct TimerSessionView: View {
         isCountUp: Bool = false,
         taskName: String? = nil,
         onDismiss: @escaping @MainActor () -> Void,
-        onDismissAndAmend: (@MainActor () -> Void)? = nil
+        onDismissAndAmend: (@MainActor () -> Void)? = nil,
+        onDismissAndStartNext: (@MainActor (Int) -> Void)? = nil
     ) {
         self.durationSeconds = durationSeconds
         self.isTest = isTest
@@ -54,6 +59,7 @@ struct TimerSessionView: View {
         self.taskName = taskName
         self.onDismiss = onDismiss
         self.onDismissAndAmend = onDismissAndAmend
+        self.onDismissAndStartNext = onDismissAndStartNext
         _secondsRemaining = State(initialValue: durationSeconds)
         _isCountUp = State(initialValue: isCountUp)
     }
@@ -191,6 +197,10 @@ struct TimerSessionView: View {
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             backgroundAudioKeepAlive.stop()
+            if let pendingChainSeconds {
+                self.pendingChainSeconds = nil
+                onDismissAndStartNext?(pendingChainSeconds)
+            }
         }
         .onChange(of: sessionAudioCueLevel) { _, newLevel in
             guard !isTest else { return }
@@ -243,6 +253,19 @@ struct TimerSessionView: View {
         } message: {
             Text("This session won't be saved.")
         }
+        .confirmationDialog("Start Next", isPresented: $showChainSheet, titleVisibility: .visible) {
+            ForEach(presets, id: \.self) { minutes in
+                Button("\(minutes) min") {
+                    if onDismissAndStartNext != nil {
+                        pendingChainSeconds = minutes * 60
+                    }
+                    onDismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                onDismiss()
+            }
+        }
     }
 
     // MARK: - Sub-views
@@ -280,19 +303,36 @@ struct TimerSessionView: View {
             }
     }
 
+    @ViewBuilder
     private var checkmarkButton: some View {
-        Button {
-            win()
-        } label: {
-            Image(systemName: "checkmark")
-                .font(.system(size: 48, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 130, height: 130)
-                .background(Color.green)
-                .clipShape(Circle())
-                .shadow(color: .green.opacity(0.4), radius: 12, x: 0, y: 6)
+        let label = Image(systemName: "checkmark")
+            .font(.system(size: 48, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 130, height: 130)
+            .background(Color.green)
+            .clipShape(Circle())
+            .shadow(color: .green.opacity(0.4), radius: 12, x: 0, y: 6)
+
+        if isBreak || isTest {
+            Button {
+                win()
+            } label: {
+                label
+            }
+            .accessibilityLabel("Complete")
+        } else {
+            let tap = TapGesture().onEnded {
+                win()
+            }
+            let longPress = LongPressGesture(minimumDuration: checkmarkLongPressDuration).onEnded { _ in
+                winViaLongPress()
+            }
+
+            label
+                .contentShape(Circle())
+                .gesture(longPress.exclusively(before: tap))
+                .accessibilityLabel("Complete. Hold to complete and start another timer.")
         }
-        .accessibilityLabel("Complete")
     }
 
     private var wonView: some View {
@@ -376,9 +416,21 @@ struct TimerSessionView: View {
 
     // MARK: - Actions
 
-    private func win(isAutoComplete: Bool = false) {
+    private func winViaLongPress() {
         guard sessionState == .running else { return }
-        let timeSpent = isCountUp ? secondsElapsed : (durationSeconds - secondsRemaining)
+        // LongPressGesture's onEnded fires the instant the hold duration is
+        // satisfied, not on finger-lift, so "now minus the hold duration" is
+        // an accurate stand-in for when the press actually began — without
+        // needing a separate onChanged-tracked timestamp.
+        let anchor = Date().addingTimeInterval(-checkmarkLongPressDuration)
+        let elapsed = min(durationSeconds, max(0, Int(anchor.timeIntervalSince(timerStartDate))))
+        win(elapsedOverride: elapsed, suppressAutoDismiss: true)
+        showChainSheet = true
+    }
+
+    private func win(isAutoComplete: Bool = false, elapsedOverride: Int? = nil, suppressAutoDismiss: Bool = false) {
+        guard sessionState == .running else { return }
+        let timeSpent = elapsedOverride ?? (isCountUp ? secondsElapsed : (durationSeconds - secondsRemaining))
         withAnimation(.spring(duration: 0.4)) { sessionState = .won }
         cancelNotification()
         stopAnnouncements()
@@ -403,6 +455,7 @@ struct TimerSessionView: View {
                 }
             }
         }
+        guard !suppressAutoDismiss else { return }
         let dismissDelay = (!isBreak && lastAccruedSeconds > 0) ? 3.0 : 1.5
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(dismissDelay))
