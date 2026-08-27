@@ -16,11 +16,11 @@ struct TimerSessionView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(AppState.self) private var appState
     @AppStorage(Keys.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
-    @AppStorage(Keys.verbalCountdownEnabled) private var verbalCountdownEnabled = true
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
     @AppStorage(Keys.bankedSeconds) private var bankedSeconds: Int = 0
 
@@ -32,8 +32,6 @@ struct TimerSessionView: View {
     @State private var timerStartDate = Date()
     @State private var pendingAnnouncements: [Int] = []
     @State private var speechSynthesizer = AVSpeechSynthesizer()
-    @State private var sessionAudioCueLevel: AudioCueLevel = .regular
-    @State private var lastNonMutedLevel: AudioCueLevel = .regular
     @State private var showAudioCueLevelPicker = false
     @State private var lastAccruedSeconds = 0
     @State private var backgroundAudioKeepAlive = BackgroundAudioKeepAlive()
@@ -184,13 +182,11 @@ struct TimerSessionView: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             timerStartDate = Date()
-            sessionAudioCueLevel = verbalCountdownEnabled ? .regular : .muted
-            lastNonMutedLevel = .regular
             pendingAnnouncements = announcementThresholds
             if !isTest && (notificationsEnabled || soundEnabled) {
                 scheduleNotification()
             }
-            if !isTest && sessionAudioCueLevel != .muted {
+            if !isTest && appState.audioCueLevel != .muted {
                 backgroundAudioKeepAlive.start()
             }
         }
@@ -202,7 +198,7 @@ struct TimerSessionView: View {
                 onDismissAndStartNext?(pendingChainSeconds)
             }
         }
-        .onChange(of: sessionAudioCueLevel) { _, newLevel in
+        .onChange(of: appState.audioCueLevel) { _, newLevel in
             guard !isTest else { return }
             if newLevel != .muted {
                 backgroundAudioKeepAlive.start()
@@ -217,13 +213,13 @@ struct TimerSessionView: View {
             if isCountUp {
                 withAnimation { secondsElapsed = min(elapsed, durationSeconds) }
                 if !consumeAnnouncements(remaining: remaining, speak: true) {
-                    sessionAudioCueLevel.playCue(remaining: remaining)
+                    playAudioCue(remaining: remaining)
                 }
                 if elapsed >= durationSeconds { win(isAutoComplete: true) }
             } else {
                 withAnimation { secondsRemaining = remaining }
                 if !consumeAnnouncements(remaining: remaining, speak: true) {
-                    sessionAudioCueLevel.playCue(remaining: remaining)
+                    playAudioCue(remaining: remaining)
                 }
                 if remaining == 0 { lose() }
             }
@@ -270,36 +266,48 @@ struct TimerSessionView: View {
 
     // MARK: - Sub-views
 
+    private var audioCueLevelBinding: Binding<AudioCueLevel> {
+        Binding(
+            get: { appState.audioCueLevel },
+            set: { newLevel in
+                appState.audioCueLevel = newLevel
+                if newLevel != .muted { appState.lastNonMutedAudioCueLevel = newLevel }
+            }
+        )
+    }
+
+    private var speakMinuteMarksBinding: Binding<Bool> {
+        Binding(
+            get: { appState.speakMinuteMarks },
+            set: { appState.speakMinuteMarks = $0 }
+        )
+    }
+
     private var speakerControl: some View {
         let tap = TapGesture().onEnded {
-            if sessionAudioCueLevel == .muted {
-                sessionAudioCueLevel = lastNonMutedLevel
+            if appState.audioCueLevel == .muted {
+                appState.audioCueLevel = appState.lastNonMutedAudioCueLevel
             } else {
-                lastNonMutedLevel = sessionAudioCueLevel
-                sessionAudioCueLevel = .muted
+                appState.lastNonMutedAudioCueLevel = appState.audioCueLevel
+                appState.audioCueLevel = .muted
             }
         }
         let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
             showAudioCueLevelPicker = true
         }
 
-        return Image(systemName: sessionAudioCueLevel == .muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+        return Image(systemName: appState.audioCueLevel == .muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
             .font(.subheadline)
             .foregroundStyle(.blue)
             .contentShape(Rectangle())
             .gesture(longPress.exclusively(before: tap))
             .accessibilityLabel(
-                sessionAudioCueLevel == .muted
+                appState.audioCueLevel == .muted
                     ? "Muted. Tap to unmute, hold for cue level options."
-                    : "\(sessionAudioCueLevel.label). Tap to mute, hold for cue level options."
+                    : "\(appState.audioCueLevel.label). Tap to mute, hold for cue level options."
             )
-            .confirmationDialog("Audio Cues", isPresented: $showAudioCueLevelPicker, titleVisibility: .visible) {
-                ForEach(AudioCueLevel.allCases, id: \.self) { level in
-                    Button(level.label) {
-                        sessionAudioCueLevel = level
-                        if level != .muted { lastNonMutedLevel = level }
-                    }
-                }
+            .sheet(isPresented: $showAudioCueLevelPicker) {
+                AudioCueSheet(level: audioCueLevelBinding, speakMinuteMarks: speakMinuteMarksBinding)
             }
     }
 
@@ -574,15 +582,21 @@ struct TimerSessionView: View {
     }
 
     private func announce(_ threshold: Int) {
-        guard sessionAudioCueLevel != .muted, !isTest else { return }
+        guard appState.audioCueLevel != .muted, !isTest else { return }
         let text: String
         switch threshold {
         case 10: text = "Ten"
         case 5: text = "Five"
-        case 60...: text = "\(threshold / 60) minute\(threshold == 60 ? "" : "s") remaining"
+        case 60...: text = AudioCueLevel.minuteRemainingText(threshold / 60)
         default: text = "\(threshold) seconds remaining"
         }
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
+    }
+
+    private func playAudioCue(remaining: Int) {
+        appState.audioCueLevel.playCue(remaining: remaining, speakMinuteMarks: appState.speakMinuteMarks) { minutes in
+            speechSynthesizer.speak(AVSpeechUtterance(string: AudioCueLevel.minuteRemainingText(minutes)))
+        }
     }
 
     private func stopAnnouncements() {

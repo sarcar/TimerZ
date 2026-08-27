@@ -18,33 +18,58 @@ enum AudioCueLevel: Int, CaseIterable {
         }
     }
 
+    var shortTitle: String {
+        switch self {
+        case .muted: return "Mute"
+        case .regular: return "Regular"
+        case .everyMinute: return "Level 2"
+        case .every30Seconds: return "Level 3"
+        case .everySecond: return "Level 4"
+        }
+    }
+
+    static func minuteRemainingText(_ minutes: Int) -> String {
+        "\(minutes) minute\(minutes == 1 ? "" : "s") remaining"
+    }
+
     /// Plays this level's beep for a given remaining-seconds mark, if any.
     /// Only the single most-prominent cue plays at a shared instant (e.g. a
-    /// 60s mark is also a 30s mark, but only the double-beep sounds there).
+    /// 60s mark is also a 30s mark, but only the minute cue sounds there).
     /// Callers must suppress this entirely on ticks where a spoken
     /// announcement already fired — speech always takes priority over beeps.
-    func playCue(remaining: Int) {
+    /// When `speakMinuteMarks` is on, the minute-mark cue (Levels 2–4) speaks
+    /// the remaining minutes via `speak` instead of playing the double beep.
+    func playCue(remaining: Int, speakMinuteMarks: Bool, speak: (Int) -> Void) {
         guard remaining > 0 else { return }
         switch self {
         case .muted, .regular:
             return
         case .everyMinute:
-            if remaining % 60 == 0 { AudioCueTone.double.play() }
+            cueMinuteMark(remaining: remaining, speakMinuteMarks: speakMinuteMarks, speak: speak)
         case .every30Seconds:
-            if remaining % 60 == 0 {
-                AudioCueTone.double.play()
-            } else if remaining % 30 == 0 {
-                AudioCueTone.single.play()
+            if !cueMinuteMark(remaining: remaining, speakMinuteMarks: speakMinuteMarks, speak: speak) {
+                if remaining % 30 == 0 { AudioCueTone.single.play() }
             }
         case .everySecond:
-            if remaining % 60 == 0 {
-                AudioCueTone.double.play()
-            } else if remaining % 30 == 0 {
-                AudioCueTone.single.play()
-            } else {
-                AudioCueTone.tick.play()
+            if !cueMinuteMark(remaining: remaining, speakMinuteMarks: speakMinuteMarks, speak: speak) {
+                if remaining % 30 == 0 {
+                    AudioCueTone.single.play()
+                } else {
+                    AudioCueTone.tick.play()
+                }
             }
         }
+    }
+
+    @discardableResult
+    private func cueMinuteMark(remaining: Int, speakMinuteMarks: Bool, speak: (Int) -> Void) -> Bool {
+        guard remaining % 60 == 0 else { return false }
+        if speakMinuteMarks {
+            speak(remaining / 60)
+        } else {
+            AudioCueTone.double.play()
+        }
+        return true
     }
 }
 

@@ -15,6 +15,7 @@
 		2DD7E37711015F06BB6389D0 /* JogDial.swift in Sources */ = {isa = PBXBuildFile; fileRef = A729E1150CCB1A49E5279674 /* JogDial.swift */; };
 		3977E2F51D88485FD8F86B67 /* TimerSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61BD484DCB3206900C59D5D3 /* TimerSessionView.swift */; };
 		3C0A93A99B1159717B49FDF2 /* BackgroundAudioKeepAlive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186C6C032FF84B923AB1FB6F /* BackgroundAudioKeepAlive.swift */; };
+		4142A1338DE1047C5B07840B /* AudioCueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E069AB75D3C3D59008D3B8D4 /* AudioCueSheet.swift */; };
 		45657E6BE07B57CFBBCAAC6D /* IntensityStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BADF2BB836B4F2637ACD6F2 /* IntensityStatsView.swift */; };
 		55279EC8160751C68CE0F605 /* BreakDialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCCC8A03CCD55B3935F2236B /* BreakDialView.swift */; };
 		5C4D614EED14E3A9F4842D16 /* Gong.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2DADEED1AC08F20FE3B1121A /* Gong.mp3 */; };
@@ -81,6 +82,7 @@
 		A729E1150CCB1A49E5279674 /* JogDial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JogDial.swift; sourceTree = "<group>"; };
 		B98CAB3A69E80A8CB31DF642 /* TimerTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerTask.swift; sourceTree = "<group>"; };
 		BCCC8A03CCD55B3935F2236B /* BreakDialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakDialView.swift; sourceTree = "<group>"; };
+		E069AB75D3C3D59008D3B8D4 /* AudioCueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCueSheet.swift; sourceTree = "<group>"; };
 		E1E6EF354379ED4BDB9900BC /* TimerZUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TimerZUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDF13C4C677FC7B95C7B8FC7 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
 		F79FD3C57759E1F05500A952 /* IntensityCommitmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityCommitmentView.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 		A8604E03E1F7DEA1D0118C7F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				E069AB75D3C3D59008D3B8D4 /* AudioCueSheet.swift */,
 				54D388C64DE49E7D5F0CF210 /* Intensity */,
 				D77440CF64A3C169EA170855 /* Settings */,
 				2C4C93983B2CA0F2D32DA295 /* Stats */,
@@ -315,6 +318,7 @@
 				6B247EEC633E1F36D5ADA5CF /* AmendSessionSheet.swift in Sources */,
 				E00A8BB095355F3AE4AD6A70 /* AppState.swift in Sources */,
 				88412DD6AF7A772A647C705E /* AudioCueLevel.swift in Sources */,
+				4142A1338DE1047C5B07840B /* AudioCueSheet.swift in Sources */,
 				3C0A93A99B1159717B49FDF2 /* BackgroundAudioKeepAlive.swift in Sources */,
 				55279EC8160751C68CE0F605 /* BreakDialView.swift in Sources */,
 				7A8B0DF80710933CBD5D3238 /* ConfettiView.swift in Sources */,

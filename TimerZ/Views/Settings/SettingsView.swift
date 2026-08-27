@@ -23,12 +23,47 @@ struct SettingsView: View {
     @State private var showAddPreset = false
     @State private var newMinutes = ""
     @State private var showClearConfirm = false
+    @State private var showNothingToClear = false
     @State private var showAmendSheet = false
     @State private var showAmendIntensitySheet = false
+    @State private var pendingClearRange: ClearDataRange?
+    @State private var pendingClearSessions: [Session] = []
+    @State private var pendingClearIntensitySessions: [IntensitySession] = []
     @FocusState private var focusedSoundIDField: SoundIDField?
 
     private enum SoundIDField: Hashable {
         case doubleBeep, singleBeep, tick
+    }
+
+    private enum ClearDataRange: String, CaseIterable, Identifiable {
+        case last30Minutes = "Last 30 mins"
+        case lastHour = "Last 1 hour"
+        case last24Hours = "Last 24 hours"
+        case last7Days = "Last 7 days"
+        case allTime = "Since Big Bang"
+
+        var id: String { rawValue }
+
+        var cutoffDate: Date? {
+            let now = Date()
+            switch self {
+            case .last30Minutes: return Calendar.current.date(byAdding: .minute, value: -30, to: now)
+            case .lastHour: return Calendar.current.date(byAdding: .hour, value: -1, to: now)
+            case .last24Hours: return Calendar.current.date(byAdding: .hour, value: -24, to: now)
+            case .last7Days: return Calendar.current.date(byAdding: .day, value: -7, to: now)
+            case .allTime: return nil
+            }
+        }
+
+        var rangeDescription: String {
+            switch self {
+            case .last30Minutes: return "the last 30 minutes"
+            case .lastHour: return "the last hour"
+            case .last24Hours: return "the last 24 hours"
+            case .last7Days: return "the last 7 days"
+            case .allTime: return "all time"
+            }
+        }
     }
 
     private var lastSession: Session? { sessions.first }
@@ -54,6 +89,47 @@ struct SettingsView: View {
 
     private func setPresets(_ updated: [Int]) {
         presetsString = updated.map { String($0) }.joined(separator: ",")
+    }
+
+    private func requestClear(_ range: ClearDataRange) {
+        let cutoff = range.cutoffDate
+        let sessionDescriptor: FetchDescriptor<Session> = cutoff.map { date in
+            FetchDescriptor<Session>(predicate: #Predicate { $0.completedAt >= date })
+        } ?? FetchDescriptor<Session>()
+        let intensityDescriptor: FetchDescriptor<IntensitySession> = cutoff.map { date in
+            FetchDescriptor<IntensitySession>(predicate: #Predicate { $0.completedAt >= date })
+        } ?? FetchDescriptor<IntensitySession>()
+
+        pendingClearRange = range
+        pendingClearSessions = (try? modelContext.fetch(sessionDescriptor)) ?? []
+        pendingClearIntensitySessions = (try? modelContext.fetch(intensityDescriptor)) ?? []
+
+        if pendingClearSessions.isEmpty && pendingClearIntensitySessions.isEmpty {
+            showNothingToClear = true
+        } else {
+            showClearConfirm = true
+        }
+    }
+
+    private func performClear() {
+        for session in pendingClearSessions { modelContext.delete(session) }
+        for session in pendingClearIntensitySessions { modelContext.delete(session) }
+        try? modelContext.save()
+        pendingClearSessions = []
+        pendingClearIntensitySessions = []
+    }
+
+    private var clearConfirmMessage: String {
+        var parts: [String] = []
+        if !pendingClearSessions.isEmpty {
+            parts.append("\(pendingClearSessions.count) timer session\(pendingClearSessions.count == 1 ? "" : "s")")
+        }
+        if !pendingClearIntensitySessions.isEmpty {
+            parts.append("\(pendingClearIntensitySessions.count) Intensity session\(pendingClearIntensitySessions.count == 1 ? "" : "s")")
+        }
+        let combined = parts.joined(separator: " and ")
+        let range = pendingClearRange?.rangeDescription ?? "the selected range"
+        return "This will permanently delete \(combined) from \(range). This cannot be undone."
     }
 
     private func audioCueSoundRow(label: String, id: Binding<Int>, field: SoundIDField) -> some View {
@@ -173,10 +249,15 @@ struct SettingsView: View {
             }
             .disabled(lastIntensitySession == nil)
 
-            Button(role: .destructive) {
-                showClearConfirm = true
+            Menu {
+                ForEach(ClearDataRange.allCases) { range in
+                    Button(range.rawValue, role: .destructive) {
+                        requestClear(range)
+                    }
+                }
             } label: {
                 Label("Clear All Data", systemImage: "trash")
+                    .foregroundStyle(.red)
             }
         }
     }
@@ -234,15 +315,18 @@ struct SettingsView: View {
         } message: {
             Text("Enter a duration in minutes.")
         }
-        .alert("Clear all data?", isPresented: $showClearConfirm) {
-            Button("Clear All", role: .destructive) {
-                try? modelContext.delete(model: Session.self)
-                try? modelContext.delete(model: IntensitySession.self)
-                try? modelContext.save()
+        .alert("Clear \(pendingClearRange?.rawValue ?? "")?", isPresented: $showClearConfirm) {
+            Button("Delete", role: .destructive) {
+                performClear()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently deletes all session history and cannot be undone.")
+            Text(clearConfirmMessage)
+        }
+        .alert("Nothing to Clear", isPresented: $showNothingToClear) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("No session history found in \(pendingClearRange?.rangeDescription ?? "that range").")
         }
     }
 }

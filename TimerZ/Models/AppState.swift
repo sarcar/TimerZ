@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 @Observable
@@ -7,4 +8,13 @@ final class AppState {
     #else
     var testModeEnabled = false
     #endif
+
+    var audioCueLevel: AudioCueLevel
+    var lastNonMutedAudioCueLevel: AudioCueLevel = .regular
+    var speakMinuteMarks = false
+
+    init() {
+        let verbalCountdownEnabled = (UserDefaults.standard.object(forKey: Keys.verbalCountdownEnabled) as? Bool) ?? true
+        audioCueLevel = verbalCountdownEnabled ? .regular : .muted
+    }
 }
