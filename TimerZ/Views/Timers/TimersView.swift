@@ -8,6 +8,7 @@ private struct ActiveTimer: Identifiable {
     let isCountUp: Bool
     var isBreak: Bool = false
     var taskName: String? = nil
+    var isChainContinuation: Bool = false
 }
 
 struct TimersView: View {
@@ -81,6 +82,7 @@ struct TimersView: View {
                 isBreak: timer.isBreak,
                 isCountUp: timer.isCountUp,
                 taskName: timer.taskName,
+                isChainContinuation: timer.isChainContinuation,
                 onDismiss: {
                     activeTimer = nil
                 },
@@ -92,10 +94,7 @@ struct TimersView: View {
                     }
                 },
                 onDismissAndStartNext: { seconds in
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(350))
-                        activeTimer = ActiveTimer(seconds: seconds, isTest: false, isCountUp: false)
-                    }
+                    activeTimer = ActiveTimer(seconds: seconds, isTest: false, isCountUp: false, isChainContinuation: true)
                 }
             )
             .id(timer.id)

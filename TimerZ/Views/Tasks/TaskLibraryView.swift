@@ -5,6 +5,7 @@ private struct ActiveTaskTimer: Identifiable {
     let id = UUID()
     let taskName: String?
     let seconds: Int
+    var isChainContinuation: Bool = false
 }
 
 private enum TaskSort: String, CaseIterable, Identifiable {
@@ -105,13 +106,11 @@ struct TaskLibraryView: View {
             TimerSessionView(
                 durationSeconds: timer.seconds,
                 taskName: timer.taskName,
+                isChainContinuation: timer.isChainContinuation,
                 onDismiss: { activeTaskTimer = nil },
                 onDismissAndAmend: nil,
                 onDismissAndStartNext: { seconds in
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(350))
-                        activeTaskTimer = ActiveTaskTimer(taskName: nil, seconds: seconds)
-                    }
+                    activeTaskTimer = ActiveTaskTimer(taskName: nil, seconds: seconds, isChainContinuation: true)
                 }
             )
             .id(timer.id)

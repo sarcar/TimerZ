@@ -4,6 +4,8 @@ import Charts
 
 struct StatsView: View {
     @Query(sort: \Session.completedAt, order: .reverse) private var sessions: [Session]
+    @AppStorage(Keys.bestChainCount) private var bestChainCount = 0
+    @AppStorage(Keys.bestChainDurationSeconds) private var bestChainDurationSeconds = 0
 
     private let calendar = Calendar.current
     @State private var statsRange: StatsRange = .week
@@ -167,6 +169,8 @@ struct StatsView: View {
                 StatCard(title: "Best Streak",value: "\(bestStreak)", color: .purple)
                 StatCard(title: "TAT Today",  value: formatTAT(tatToday), color: .teal)
                 StatCard(title: "PR TAT",     value: formatTAT(prTAT), color: .indigo)
+                StatCard(title: "Longest Chain", value: "\(bestChainCount)", color: .red)
+                StatCard(title: "Longest Chain Time", value: formatTAT(bestChainDurationSeconds / 60), color: .pink)
             }
         }
     }

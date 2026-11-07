@@ -55,7 +55,7 @@
 		02E2C756A091A8EB30847D0D /* TimerZApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerZApp.swift; sourceTree = "<group>"; };
 		060E49CC773F0EA1993CD2A0 /* TaskFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskFormView.swift; sourceTree = "<group>"; };
 		186C6C032FF84B923AB1FB6F /* BackgroundAudioKeepAlive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAudioKeepAlive.swift; sourceTree = "<group>"; };
-		1AC5B39868375B8ACCE4F20C /* TimerZ.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TimerZ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1AC5B39868375B8ACCE4F20C /* TimerZ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimerZ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B3BB31EC2FF14C496043F62 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		245833EEAF8F4009B185C40A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2DADEED1AC08F20FE3B1121A /* Gong.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Gong.mp3; sourceTree = "<group>"; };
@@ -268,7 +268,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					0F7E765505AF581F6719FD36 = {
-						DevelopmentTeam = 85UMSXZ4TQ;
 						ProvisioningStyle = Automatic;
 					};
 					A34B0392E272F39C59C52C8C = {
@@ -527,7 +526,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 85UMSXZ4TQ;
+				DEVELOPMENT_TEAM = 2R32HUDS5U;
 				INFOPLIST_FILE = TimerZ/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -548,7 +547,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 85UMSXZ4TQ;
+				DEVELOPMENT_TEAM = 2R32HUDS5U;
 				INFOPLIST_FILE = TimerZ/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -19,7 +19,7 @@ xcodebuild -project TimerZ.xcodeproj -scheme TimerZ \
 
 Install and launch:
 ```bash
-APP=$(find /tmp/timerz-install -name "TimerZ.app" | head -1)
+APP=$(find ~/Library/Developer/Xcode/DerivedData -path "*/Build/Products/Debug-iphonesimulator/TimerZ.app" | head -1)
 xcrun simctl install booted "$APP"
 xcrun simctl launch booted com.timerz.app
 ```

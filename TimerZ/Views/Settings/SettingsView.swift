@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage(Keys.doubleBeepSoundID) private var doubleBeepSoundID: Int = 1210
     @AppStorage(Keys.singleBeepSoundID) private var singleBeepSoundID: Int = 1104
     @AppStorage(Keys.tickSoundID) private var tickSoundID: Int = 1157
+    @AppStorage(Keys.showChainPresetPicker) private var showChainPresetPicker = false
     @Environment(AppState.self) private var appState
 
     @Environment(\.modelContext) private var modelContext
@@ -221,6 +222,16 @@ struct SettingsView: View {
         }
     }
 
+    private var chainingSection: some View {
+        Section {
+            Toggle("Show Timer Picker When Continuing", isOn: $showChainPresetPicker)
+        } header: {
+            Text("Continuing Timers")
+        } footer: {
+            Text("When you hold the checkmark to finish early and keep going, TimerZ continues with the same timer by default. Turn this on to pick a different preset each time instead.")
+        }
+    }
+
     private var audioCueSoundsSection: some View {
         Section {
             audioCueSoundRow(label: "Double Beep (Level 2)", id: $doubleBeepSoundID, field: .doubleBeep)
@@ -268,6 +279,7 @@ struct SettingsView: View {
             Form {
                 presetsSection
                 notificationsSection
+                chainingSection
                 audioCueSoundsSection
 
                 Section {

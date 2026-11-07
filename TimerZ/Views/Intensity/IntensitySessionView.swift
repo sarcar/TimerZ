@@ -283,15 +283,15 @@ struct IntensitySessionView: View {
 
     private var speakerControl: some View {
         let tap = TapGesture().onEnded {
+            showAudioCueLevelPicker = true
+        }
+        let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
             if appState.audioCueLevel == .muted {
                 appState.audioCueLevel = appState.lastNonMutedAudioCueLevel
             } else {
                 appState.lastNonMutedAudioCueLevel = appState.audioCueLevel
                 appState.audioCueLevel = .muted
             }
-        }
-        let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-            showAudioCueLevelPicker = true
         }
 
         return Image(systemName: appState.audioCueLevel == .muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -301,8 +301,8 @@ struct IntensitySessionView: View {
             .gesture(longPress.exclusively(before: tap))
             .accessibilityLabel(
                 appState.audioCueLevel == .muted
-                    ? "Muted. Tap to unmute, hold for cue level options."
-                    : "\(appState.audioCueLevel.label). Tap to mute, hold for cue level options."
+                    ? "Muted. Hold to unmute, tap for cue level options."
+                    : "\(appState.audioCueLevel.label). Hold to mute, tap for cue level options."
             )
             .sheet(isPresented: $showAudioCueLevelPicker) {
                 AudioCueSheet(level: audioCueLevelBinding, speakMinuteMarks: speakMinuteMarksBinding)

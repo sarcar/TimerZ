@@ -12,4 +12,7 @@ enum Keys {
     static let doubleBeepSoundID = "doubleBeepSoundID"
     static let singleBeepSoundID = "singleBeepSoundID"
     static let tickSoundID = "tickSoundID"
+    static let showChainPresetPicker = "showChainPresetPicker"
+    static let bestChainCount = "bestChainCount"
+    static let bestChainDurationSeconds = "bestChainDurationSeconds"
 }

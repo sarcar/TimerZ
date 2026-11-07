@@ -58,7 +58,7 @@ enum AudioCueLevel: Int, CaseIterable {
                     AudioCueTone.tick.play()
                 }
             }
-        }
+        } 
     }
 
     @discardableResult

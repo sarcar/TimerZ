@@ -10,6 +10,7 @@ struct TimerSessionView: View {
     let isTest: Bool
     let isBreak: Bool
     let taskName: String?
+    let isChainContinuation: Bool
     let onDismiss: @MainActor () -> Void
     let onDismissAndAmend: (@MainActor () -> Void)?
     let onDismissAndStartNext: (@MainActor (Int) -> Void)?
@@ -23,6 +24,9 @@ struct TimerSessionView: View {
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
     @AppStorage(Keys.bankedSeconds) private var bankedSeconds: Int = 0
+    @AppStorage(Keys.showChainPresetPicker) private var showChainPresetPicker = false
+    @AppStorage(Keys.bestChainCount) private var bestChainCount = 0
+    @AppStorage(Keys.bestChainDurationSeconds) private var bestChainDurationSeconds = 0
 
     @State private var secondsRemaining: Int
     @State private var secondsElapsed = 0
@@ -35,8 +39,8 @@ struct TimerSessionView: View {
     @State private var showAudioCueLevelPicker = false
     @State private var lastAccruedSeconds = 0
     @State private var backgroundAudioKeepAlive = BackgroundAudioKeepAlive()
-    @State private var pendingChainSeconds: Int?
     @State private var showChainSheet = false
+    @State private var chainCelebrationCount: Int?
     private let checkmarkLongPressDuration: TimeInterval = 0.5
 
     enum SessionState { case running, won, lost }
@@ -47,6 +51,7 @@ struct TimerSessionView: View {
         isBreak: Bool = false,
         isCountUp: Bool = false,
         taskName: String? = nil,
+        isChainContinuation: Bool = false,
         onDismiss: @escaping @MainActor () -> Void,
         onDismissAndAmend: (@MainActor () -> Void)? = nil,
         onDismissAndStartNext: (@MainActor (Int) -> Void)? = nil
@@ -55,6 +60,7 @@ struct TimerSessionView: View {
         self.isTest = isTest
         self.isBreak = isBreak
         self.taskName = taskName
+        self.isChainContinuation = isChainContinuation
         self.onDismiss = onDismiss
         self.onDismissAndAmend = onDismissAndAmend
         self.onDismissAndStartNext = onDismissAndStartNext
@@ -173,7 +179,7 @@ struct TimerSessionView: View {
                 Spacer()
             }
 
-            if sessionState == .won && !isBreak && lastAccruedSeconds > 0 {
+            if sessionState == .won && !isBreak && (lastAccruedSeconds > 0 || chainCelebrationCount != nil) {
                 ConfettiView()
                     .ignoresSafeArea()
                     .transition(.identity)
@@ -183,6 +189,10 @@ struct TimerSessionView: View {
             UIApplication.shared.isIdleTimerDisabled = true
             timerStartDate = Date()
             pendingAnnouncements = announcementThresholds
+            if !isTest && !isChainContinuation {
+                appState.currentChainCount = 1
+                appState.currentChainElapsedSeconds = 0
+            }
             if !isTest && (notificationsEnabled || soundEnabled) {
                 scheduleNotification()
             }
@@ -193,10 +203,6 @@ struct TimerSessionView: View {
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             backgroundAudioKeepAlive.stop()
-            if let pendingChainSeconds {
-                self.pendingChainSeconds = nil
-                onDismissAndStartNext?(pendingChainSeconds)
-            }
         }
         .onChange(of: appState.audioCueLevel) { _, newLevel in
             guard !isTest else { return }
@@ -244,6 +250,9 @@ struct TimerSessionView: View {
                 cancelNotification()
                 stopAnnouncements()
                 backgroundAudioKeepAlive.stop()
+                if !isTest && !isBreak {
+                    finalizeChain(addingElapsed: nil)
+                }
                 onDismiss()
             }
         } message: {
@@ -252,13 +261,18 @@ struct TimerSessionView: View {
         .confirmationDialog("Start Next", isPresented: $showChainSheet, titleVisibility: .visible) {
             ForEach(presets, id: \.self) { minutes in
                 Button("\(minutes) min") {
-                    if onDismissAndStartNext != nil {
-                        pendingChainSeconds = minutes * 60
+                    if let onDismissAndStartNext {
+                        onDismissAndStartNext(minutes * 60)
+                    } else {
+                        if !isTest { finalizeChain(addingElapsed: nil) }
+                        onDismiss()
                     }
-                    onDismiss()
                 }
             }
             Button("Cancel", role: .cancel) {
+                if !isTest {
+                    finalizeChain(addingElapsed: nil)
+                }
                 onDismiss()
             }
         }
@@ -285,15 +299,15 @@ struct TimerSessionView: View {
 
     private var speakerControl: some View {
         let tap = TapGesture().onEnded {
+            showAudioCueLevelPicker = true
+        }
+        let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
             if appState.audioCueLevel == .muted {
                 appState.audioCueLevel = appState.lastNonMutedAudioCueLevel
             } else {
                 appState.lastNonMutedAudioCueLevel = appState.audioCueLevel
                 appState.audioCueLevel = .muted
             }
-        }
-        let longPress = LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-            showAudioCueLevelPicker = true
         }
 
         return Image(systemName: appState.audioCueLevel == .muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -303,8 +317,8 @@ struct TimerSessionView: View {
             .gesture(longPress.exclusively(before: tap))
             .accessibilityLabel(
                 appState.audioCueLevel == .muted
-                    ? "Muted. Tap to unmute, hold for cue level options."
-                    : "\(appState.audioCueLevel.label). Tap to mute, hold for cue level options."
+                    ? "Muted. Hold to unmute, tap for cue level options."
+                    : "\(appState.audioCueLevel.label). Hold to mute, tap for cue level options."
             )
             .sheet(isPresented: $showAudioCueLevelPicker) {
                 AudioCueSheet(level: audioCueLevelBinding, speakMinuteMarks: speakMinuteMarksBinding)
@@ -350,11 +364,42 @@ struct TimerSessionView: View {
                 .foregroundStyle(.green)
             Text(isBreak ? "Break's over!" : "You did it!")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
-            if !isBreak && lastAccruedSeconds > 0 {
+            if !isBreak, let chainCelebrationCount {
+                chainToast(count: chainCelebrationCount)
+            } else if !isBreak && lastAccruedSeconds > 0 {
                 accrualToast
             }
         }
         .transition(.scale.combined(with: .opacity))
+    }
+
+    private func chainToast(count: Int) -> some View {
+        HStack(spacing: 6) {
+            Text("🔥")
+            Text("\(count) in a row!").fontWeight(.bold)
+            Text("·")
+            Text(chainDurationText)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing),
+            in: Capsule()
+        )
+        .shadow(color: Color.orange.opacity(0.5), radius: 8, x: 0, y: 4)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private var chainDurationText: String {
+        let minutes = max(1, appState.currentChainElapsedSeconds / 60)
+        if minutes >= 60 {
+            let hours = minutes / 60
+            let remainder = minutes % 60
+            return remainder > 0 ? "\(hours)h \(remainder)m focused" : "\(hours)h focused"
+        }
+        return "\(minutes) min focused"
     }
 
     private var accrualToast: some View {
@@ -432,11 +477,31 @@ struct TimerSessionView: View {
         // needing a separate onChanged-tracked timestamp.
         let anchor = Date().addingTimeInterval(-checkmarkLongPressDuration)
         let elapsed = min(durationSeconds, max(0, Int(anchor.timeIntervalSince(timerStartDate))))
-        win(elapsedOverride: elapsed, suppressAutoDismiss: true)
-        showChainSheet = true
+
+        if !isTest {
+            appState.currentChainElapsedSeconds += elapsed
+            appState.currentChainCount += 1
+            chainCelebrationCount = appState.currentChainCount
+        }
+
+        win(elapsedOverride: elapsed, suppressAutoDismiss: true, suppressAccrual: true)
+
+        if showChainPresetPicker {
+            showChainSheet = true
+        } else {
+            let nextDuration = durationSeconds
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2.4))
+                if let onDismissAndStartNext {
+                    onDismissAndStartNext(nextDuration)
+                } else {
+                    onDismiss()
+                }
+            }
+        }
     }
 
-    private func win(isAutoComplete: Bool = false, elapsedOverride: Int? = nil, suppressAutoDismiss: Bool = false) {
+    private func win(isAutoComplete: Bool = false, elapsedOverride: Int? = nil, suppressAutoDismiss: Bool = false, suppressAccrual: Bool = false) {
         guard sessionState == .running else { return }
         let timeSpent = elapsedOverride ?? (isCountUp ? secondsElapsed : (durationSeconds - secondsRemaining))
         withAnimation(.spring(duration: 0.4)) { sessionState = .won }
@@ -444,9 +509,15 @@ struct TimerSessionView: View {
         stopAnnouncements()
         if isBreak {
             spendBank(seconds: timeSpent)
+        } else if suppressAccrual {
+            lastAccruedSeconds = 0
+            saveSession(isWin: true, timeSpentSeconds: timeSpent, accruedSeconds: 0)
         } else {
             lastAccruedSeconds = accrueBank(elapsed: timeSpent)
             saveSession(isWin: true, timeSpentSeconds: timeSpent, accruedSeconds: lastAccruedSeconds)
+            if !isTest {
+                finalizeChain(addingElapsed: timeSpent)
+            }
         }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -480,6 +551,9 @@ struct TimerSessionView: View {
             spendBank(seconds: durationSeconds)
         } else {
             saveSession(isWin: false)
+            if !isTest {
+                finalizeChain(addingElapsed: durationSeconds)
+            }
         }
         if hapticsEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
@@ -493,6 +567,17 @@ struct TimerSessionView: View {
                 }
             }
         }
+    }
+
+    private func finalizeChain(addingElapsed elapsed: Int?) {
+        let finalCount = appState.currentChainCount
+        let finalElapsed = appState.currentChainElapsedSeconds + (elapsed ?? 0)
+        if finalCount >= 2 {
+            bestChainCount = max(bestChainCount, finalCount)
+            bestChainDurationSeconds = max(bestChainDurationSeconds, finalElapsed)
+        }
+        appState.currentChainCount = 1
+        appState.currentChainElapsedSeconds = 0
     }
 
     private func saveSession(isWin: Bool, timeSpentSeconds: Int = 0, accruedSeconds: Int = 0) {
