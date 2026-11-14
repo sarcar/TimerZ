@@ -28,6 +28,7 @@ struct IntensitySessionView: View {
     @AppStorage(Keys.soundEnabled) private var soundEnabled = true
     @AppStorage(Keys.expirySound) private var expirySoundID: Int = 1107
     @AppStorage(Keys.timerPresets) private var presetsString: String = "5,10,15,25"
+    @AppStorage(Keys.minuteMarkIntervalMinutes) private var minuteMarkIntervalMinutes = 1
 
     @State private var durationSeconds: Int
     @State private var secondsRemaining: Int
@@ -704,13 +705,13 @@ struct IntensitySessionView: View {
         case 10: text = "Ten"
         case 5: text = "Five"
         case 60...: text = AudioCueLevel.minuteRemainingText(threshold / 60)
-        default: text = "\(threshold) seconds remaining"
+        default: text = AudioCueLevel.secondsRemainingText(threshold)
         }
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }
 
     private func playAudioCue(remaining: Int) {
-        appState.audioCueLevel.playCue(remaining: remaining, speakMinuteMarks: appState.speakMinuteMarks) { minutes in
+        appState.audioCueLevel.playCue(remaining: remaining, minuteInterval: minuteMarkIntervalMinutes, speakMinuteMarks: appState.speakMinuteMarks) { minutes in
             speechSynthesizer.speak(AVSpeechUtterance(string: AudioCueLevel.minuteRemainingText(minutes)))
         }
     }
@@ -748,7 +749,7 @@ struct IntensitySessionView: View {
         case 10: text = "Ten"
         case 5: text = "Five"
         case 60...: text = AudioCueLevel.minuteRemainingText(threshold / 60)
-        default: text = "\(threshold) seconds remaining"
+        default: text = AudioCueLevel.secondsRemainingText(threshold)
         }
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }

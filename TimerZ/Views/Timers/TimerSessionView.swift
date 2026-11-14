@@ -27,6 +27,7 @@ struct TimerSessionView: View {
     @AppStorage(Keys.showChainPresetPicker) private var showChainPresetPicker = false
     @AppStorage(Keys.bestChainCount) private var bestChainCount = 0
     @AppStorage(Keys.bestChainDurationSeconds) private var bestChainDurationSeconds = 0
+    @AppStorage(Keys.minuteMarkIntervalMinutes) private var minuteMarkIntervalMinutes = 1
 
     @State private var secondsRemaining: Int
     @State private var secondsElapsed = 0
@@ -673,13 +674,13 @@ struct TimerSessionView: View {
         case 10: text = "Ten"
         case 5: text = "Five"
         case 60...: text = AudioCueLevel.minuteRemainingText(threshold / 60)
-        default: text = "\(threshold) seconds remaining"
+        default: text = AudioCueLevel.secondsRemainingText(threshold)
         }
         speechSynthesizer.speak(AVSpeechUtterance(string: text))
     }
 
     private func playAudioCue(remaining: Int) {
-        appState.audioCueLevel.playCue(remaining: remaining, speakMinuteMarks: appState.speakMinuteMarks) { minutes in
+        appState.audioCueLevel.playCue(remaining: remaining, minuteInterval: minuteMarkIntervalMinutes, speakMinuteMarks: appState.speakMinuteMarks) { minutes in
             speechSynthesizer.speak(AVSpeechUtterance(string: AudioCueLevel.minuteRemainingText(minutes)))
         }
     }

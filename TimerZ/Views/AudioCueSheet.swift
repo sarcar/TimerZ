@@ -3,6 +3,8 @@ import SwiftUI
 struct AudioCueSheet: View {
     @Binding var level: AudioCueLevel
     @Binding var speakMinuteMarks: Bool
+    @AppStorage(Keys.minuteMarkIntervalMinutes) private var minuteMarkIntervalMinutes = 1
+    @AppStorage(Keys.sayRemaining) private var sayRemaining = true
 
     @Environment(\.dismiss) private var dismiss
 
@@ -11,16 +13,17 @@ struct AudioCueSheet: View {
     }
 
     private var minuteCueDescription: String {
-        speakMinuteMarks ? "Speaks the time" : "Double beep"
+        let cue = speakMinuteMarks ? "Speaks the time" : "Double beep"
+        return minuteMarkIntervalMinutes <= 1 ? "\(cue) every minute" : "\(cue) every \(minuteMarkIntervalMinutes) min"
     }
 
     private func subtitle(for level: AudioCueLevel) -> String {
         switch level {
         case .muted: return "No audio cues"
         case .regular: return "Spoken countdown at key moments"
-        case .everyMinute: return "\(minuteCueDescription) every minute"
-        case .every30Seconds: return "\(minuteCueDescription) every minute + single beep every 30 sec"
-        case .everySecond: return "\(minuteCueDescription) every minute + tick every second"
+        case .everyMinute: return minuteCueDescription
+        case .every30Seconds: return "\(minuteCueDescription) + single beep every 30 sec"
+        case .everySecond: return "\(minuteCueDescription) + tick every second"
         }
     }
 
@@ -52,7 +55,25 @@ struct AudioCueSheet: View {
                 }
 
                 Section {
-                    Toggle("Speak Minute Marks", isOn: Binding(
+                    LabeledContent("Cue every") {
+                        Picker("Cue every", selection: Binding(
+                            get: { minuteMarkIntervalMinutes },
+                            set: { newValue in
+                                minuteMarkIntervalMinutes = newValue
+                                if !minuteMarksApplicable {
+                                    level = .everyMinute
+                                }
+                            }
+                        )) {
+                            ForEach(AudioCueLevel.minuteMarkIntervals, id: \.self) { minutes in
+                                Text("\(minutes) min").tag(minutes)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                    Toggle("Speak Instead of Beep", isOn: Binding(
                         get: { speakMinuteMarks },
                         set: { newValue in
                             speakMinuteMarks = newValue
@@ -61,8 +82,11 @@ struct AudioCueSheet: View {
                             }
                         }
                     ))
+                    Toggle("Say \u{201C}Remaining\u{201D}", isOn: $sayRemaining)
+                } header: {
+                    Text("Minute Marks")
                 } footer: {
-                    Text("Say the time instead of a double beep at each minute. Turning this on while Mute or Regular is selected switches you to Level 2.")
+                    Text("Minute marks play at Levels 2\u{2013}4, counted by time remaining. Changing the interval or speaking while Mute or Regular is selected switches you to Level 2. \u{201C}Remaining\u{201D} applies to every spoken time, e.g. \u{201C}4 minutes\u{201D} instead of \u{201C}4 minutes remaining\u{201D}.")
                 }
             }
             .navigationTitle("Audio Cues")

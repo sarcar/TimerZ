@@ -28,8 +28,22 @@ enum AudioCueLevel: Int, CaseIterable {
         }
     }
 
+    /// The minute-mark intervals offered in the Audio Cues sheet.
+    static let minuteMarkIntervals = [1, 2, 3]
+
     static func minuteRemainingText(_ minutes: Int) -> String {
-        "\(minutes) minute\(minutes == 1 ? "" : "s") remaining"
+        "\(minutes) minute\(minutes == 1 ? "" : "s")" + remainingSuffix
+    }
+
+    static func secondsRemainingText(_ seconds: Int) -> String {
+        "\(seconds) seconds" + remainingSuffix
+    }
+
+    /// Read at speak time so a change in the Audio Cues sheet applies to the
+    /// next announcement. Defaults to on when the key has never been set.
+    private static var remainingSuffix: String {
+        let sayRemaining = (UserDefaults.standard.object(forKey: Keys.sayRemaining) as? Bool) ?? true
+        return sayRemaining ? " remaining" : ""
     }
 
     /// Plays this level's beep for a given remaining-seconds mark, if any.
@@ -39,19 +53,21 @@ enum AudioCueLevel: Int, CaseIterable {
     /// announcement already fired — speech always takes priority over beeps.
     /// When `speakMinuteMarks` is on, the minute-mark cue (Levels 2–4) speaks
     /// the remaining minutes via `speak` instead of playing the double beep.
-    func playCue(remaining: Int, speakMinuteMarks: Bool, speak: (Int) -> Void) {
+    /// Minute marks fall every `minuteInterval` minutes of time remaining; at
+    /// Levels 3–4 a skipped minute still gets the 30-second single beep.
+    func playCue(remaining: Int, minuteInterval: Int, speakMinuteMarks: Bool, speak: (Int) -> Void) {
         guard remaining > 0 else { return }
         switch self {
         case .muted, .regular:
             return
         case .everyMinute:
-            cueMinuteMark(remaining: remaining, speakMinuteMarks: speakMinuteMarks, speak: speak)
+            cueMinuteMark(remaining: remaining, minuteInterval: minuteInterval, speakMinuteMarks: speakMinuteMarks, speak: speak)
         case .every30Seconds:
-            if !cueMinuteMark(remaining: remaining, speakMinuteMarks: speakMinuteMarks, speak: speak) {
+            if !cueMinuteMark(remaining: remaining, minuteInterval: minuteInterval, speakMinuteMarks: speakMinuteMarks, speak: speak) {
                 if remaining % 30 == 0 { AudioCueTone.single.play() }
             }
         case .everySecond:
-            if !cueMinuteMark(remaining: remaining, speakMinuteMarks: speakMinuteMarks, speak: speak) {
+            if !cueMinuteMark(remaining: remaining, minuteInterval: minuteInterval, speakMinuteMarks: speakMinuteMarks, speak: speak) {
                 if remaining % 30 == 0 {
                     AudioCueTone.single.play()
                 } else {
@@ -62,8 +78,8 @@ enum AudioCueLevel: Int, CaseIterable {
     }
 
     @discardableResult
-    private func cueMinuteMark(remaining: Int, speakMinuteMarks: Bool, speak: (Int) -> Void) -> Bool {
-        guard remaining % 60 == 0 else { return false }
+    private func cueMinuteMark(remaining: Int, minuteInterval: Int, speakMinuteMarks: Bool, speak: (Int) -> Void) -> Bool {
+        guard remaining % (60 * max(1, minuteInterval)) == 0 else { return false }
         if speakMinuteMarks {
             speak(remaining / 60)
         } else {

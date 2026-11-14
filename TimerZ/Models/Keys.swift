@@ -15,4 +15,6 @@ enum Keys {
     static let showChainPresetPicker = "showChainPresetPicker"
     static let bestChainCount = "bestChainCount"
     static let bestChainDurationSeconds = "bestChainDurationSeconds"
+    static let minuteMarkIntervalMinutes = "minuteMarkIntervalMinutes"
+    static let sayRemaining = "sayRemaining"
 }
